@@ -19,7 +19,7 @@ export function useDatos(): TodosLosDatos | undefined {
       db.productos.orderBy('orden').toArray(), db.metas.toArray(), db.compras.toArray(),
     ]);
     if (!ajustes) return undefined;
-    const ordenRec = ['rec-pasaje', 'rec-gimnasio', 'rec-whey', 'rec-creatina'];
+    const ordenRec = ['rec-pasaje', 'rec-gimnasio'];
     const pos = (id: string) => (ordenRec.includes(id) ? ordenRec.indexOf(id) : 99);
     recurrentes.sort((a, b) => pos(a.id) - pos(b.id) || a.nombre.localeCompare(b.nombre));
     return { ajustes, categorias, gastos, ingresos, depositos, diasLibres, planificados, recurrentes, productos, metas, compras };

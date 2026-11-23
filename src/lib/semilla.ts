@@ -3,18 +3,19 @@ import type { Ajustes, Categoria, GastoPlanificado, MetaAhorro, ProductoSirena, 
 
 export const ID = {
   dieta: 'cat-dieta',
-  suplementos: 'cat-suplementos',
   gimnasio: 'cat-gimnasio',
   transporte: 'cat-transporte',
   personal: 'cat-personal',
-  ropa: 'cat-ropa',
-  otros: 'cat-otros',
   ahorro: 'cat-ahorro',
   recPasaje: 'rec-pasaje',
   recGimnasio: 'rec-gimnasio',
-  recWhey: 'rec-whey',
-  recCreatina: 'rec-creatina',
 } as const;
+
+/** Categorías y recurrentes que existían en la v1 y se quitaron. */
+export const RETIRADOS = {
+  categorias: ['cat-suplementos', 'cat-ropa', 'cat-otros'],
+  recurrentes: ['rec-whey', 'rec-creatina'],
+};
 
 export function ajustesIniciales(ahoraISO: string): Ajustes {
   return {
@@ -36,13 +37,10 @@ export function ajustesIniciales(ahoraISO: string): Ajustes {
 export function categoriasIniciales(): Categoria[] {
   return [
     { id: ID.dieta, clave: 'dieta', nombre: 'Dieta (Sirena)', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3974, presupuestoMensual: 7515, orden: 1, activa: true },
-    { id: ID.suplementos, clave: 'suplementos', nombre: 'Suplementos', tipo: 'gasto', modo: 'mensual', presupuestoQuincenal: 2140, presupuestoMensual: 4280, orden: 2, activa: true },
     { id: ID.gimnasio, clave: 'gimnasio', nombre: 'Gimnasio', tipo: 'gasto', modo: 'mensual', presupuestoQuincenal: 1250, presupuestoMensual: 2500, orden: 3, activa: true },
     { id: ID.transporte, clave: 'transporte', nombre: 'Transporte', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3770, presupuestoMensual: 7540, orden: 4, activa: true },
     { id: ID.personal, clave: 'personal', nombre: 'Gastos personales', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3500, presupuestoMensual: 7000, orden: 5, activa: true },
-    { id: ID.ropa, clave: 'ropa', nombre: 'Ropa y calzado', tipo: 'gasto', modo: 'unico', presupuestoQuincenal: 0, orden: 6, activa: true },
-    { id: ID.otros, clave: 'otros', nombre: 'Otros', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 0, orden: 7, activa: true },
-    { id: ID.ahorro, clave: 'ahorro', nombre: 'Ahorro', tipo: 'ahorro', modo: 'quincenal', presupuestoQuincenal: 7366, presupuestoMensual: 14732, orden: 8, activa: true },
+    { id: ID.ahorro, clave: 'ahorro', nombre: 'Ahorro', tipo: 'ahorro', modo: 'quincenal', presupuestoQuincenal: 9506, presupuestoMensual: 19012, orden: 8, activa: true },
   ];
 }
 
@@ -71,8 +69,6 @@ export function recurrentesIniciales(): Recurrente[] {
   return [
     { id: ID.recPasaje, nombre: 'Pasaje diario', categoriaId: ID.transporte, monto: 290, frecuencia: 'diaria-laboral', automatico: false, activo: true },
     { id: ID.recGimnasio, nombre: 'Mensualidad gimnasio', categoriaId: ID.gimnasio, monto: 2500, frecuencia: 'mensual', diaDelMes: 1, automatico: false, activo: true },
-    { id: ID.recWhey, nombre: 'Whey', categoriaId: ID.suplementos, monto: 3333, frecuencia: 'cada-n-meses', cadaNMeses: 1, diaDelMes: 1, automatico: false, activo: true },
-    { id: ID.recCreatina, nombre: 'Creatina Nutricost', categoriaId: ID.suplementos, monto: 1890, frecuencia: 'cada-n-meses', cadaNMeses: 2, diaDelMes: 1, automatico: false, activo: true },
   ];
 }
 

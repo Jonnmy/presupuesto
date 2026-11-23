@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import { hoy } from '../lib/fechas';
 import {
-  ajustesIniciales, catalogoInicial, categoriasIniciales, metasIniciales, planificadosIniciales, recurrentesIniciales,
+  ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, planificadosIniciales, recurrentesIniciales, RETIRADOS,
 } from '../lib/semilla';
 import type {
   Ajustes, Categoria, CompraSirena, DepositoAhorro, DiaLibre, Gasto, GastoPlanificado, Ingreso, MetaAhorro, ProductoSirena, Recurrente,
@@ -34,6 +34,14 @@ export class BaseDatos extends Dexie {
       metas: 'id',
       depositos: 'id, fecha',
       planificados: 'id, fecha',
+    });
+    // v2: se quitan Suplementos, Ropa y calzado y Otros. Sus gastos pasan a Gastos personales.
+    this.version(2).stores({}).upgrade(async (tx) => {
+      const viejas = RETIRADOS.categorias;
+      await tx.table('gastos').where('categoriaId').anyOf(viejas).modify({ categoriaId: ID.personal });
+      await tx.table('planificados').filter((p: GastoPlanificado) => !!p.categoriaId && viejas.includes(p.categoriaId)).modify({ categoriaId: ID.personal });
+      await tx.table('categorias').bulkDelete(viejas);
+      await tx.table('recurrentes').bulkDelete(RETIRADOS.recurrentes);
     });
   }
 }

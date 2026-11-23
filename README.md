@@ -42,7 +42,8 @@ Cada cambio en la rama `main` ejecuta las pruebas, compila y publica en GitHub P
 
 - **Estado al 100 %:** una categoría queda *excedida* solo cuando el gasto pasa el presupuesto. Si es exactamente igual queda en ámbar. Así, pagar la mensualidad completa del gimnasio (2,500 de 2,500) no sale en rojo (prueba 10).
 - **Proyección de ahorro:** gasto proyectado = lo gastado + la parte del presupuesto que corresponde a los días que faltan. Antes de empezar la quincena coincide con la meta y al terminar coincide con lo que sobró. Si la app se empezó a usar a mitad de quincena, los días anteriores no cuentan.
-- **Presupuesto mensual (prueba 5):** 29,268 sale con transporte en modo fijo (2 × 3,770). En modo calendario el mes usa los días laborables reales de cada quincena.
-- **Inscripción del gimnasio:** está como *gasto único planificado* (Presupuesto → Gastos únicos planificados) en la quincena del primer uso y baja esa meta a RD$5,366. Cuando la pagues, regístrala también como gasto.
+- **Categorías:** se quitaron Suplementos, Ropa y calzado y Otros (y los recurrentes de whey y creatina). Quedan Dieta, Gimnasio, Transporte y Gastos personales. Si ya había gastos en las categorías quitadas, pasan a Gastos personales. Con esto, las cifras de la especificación cambian: presupuesto por quincena **RD$12,494**, meta de ahorro **RD$9,506** (RD$7,506 con la inscripción), presupuesto mensual **RD$24,988** y ahorro mensual **RD$19,012**.
+- **Presupuesto mensual (prueba 5):** 24,988 sale con transporte en modo fijo (2 × 3,770). En modo calendario el mes usa los días laborables reales de cada quincena.
+- **Inscripción del gimnasio:** está como *gasto único planificado* (Presupuesto → Gastos únicos planificados) en la quincena del primer uso y baja esa meta a RD$7,506. Cuando la pagues, regístrala también como gasto.
 - **Dieta:** su presupuesto se recalcula cuando cambias precios o cantidades en el catálogo de Sirena.
 - **Recurrentes automáticos:** vienen desactivados. Al activarlos se registran solos desde ese día, nunca en fechas anteriores ni dos veces en la misma fecha.

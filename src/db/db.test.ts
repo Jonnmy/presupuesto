@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
+import Dexie from 'dexie';
 import { BaseDatos, sembrar } from './db';
 import { agregarGasto, guardarProducto, marcarCompraHecha, registrarPasaje } from './acciones';
 import { borrarTodo, exportarDatos, gastosACsv, importarDatos } from './respaldo';
@@ -15,15 +16,30 @@ beforeEach(async () => {
 
 describe('Base de datos', () => {
   it('siembra sin gastos, ingresos ni depósitos', async () => {
-    expect(await base.categorias.count()).toBe(8);
+    expect(await base.categorias.count()).toBe(5);
     expect(await base.productos.count()).toBe(14);
-    expect(await base.recurrentes.count()).toBe(4);
+    expect(await base.recurrentes.count()).toBe(2);
     expect(await base.metas.count()).toBe(1);
     expect(await base.gastos.count()).toBe(0);
     expect(await base.ingresos.count()).toBe(0);
     expect(await base.depositos.count()).toBe(0);
     await sembrar(base); // idempotente
-    expect(await base.categorias.count()).toBe(8);
+    expect(await base.categorias.count()).toBe(5);
+  });
+
+  it('migración v1 → v2: quita Suplementos, Ropa y Otros y pasa sus gastos a Gastos personales', async () => {
+    const nombre = `migracion-${++n}`;
+    const v1 = new Dexie(nombre);
+    v1.version(1).stores({ ajustes: 'id', categorias: 'id, orden', gastos: 'id, fecha, categoriaId, recurrenteId', ingresos: 'id, fecha', recurrentes: 'id', diasLibres: 'fecha', productos: 'id, orden', compras: 'id, fecha', metas: 'id', depositos: 'id, fecha', planificados: 'id, fecha' });
+    await v1.table('categorias').bulkAdd([{ id: 'cat-suplementos', orden: 2 }, { id: 'cat-ropa', orden: 6 }, { id: 'cat-otros', orden: 7 }, { id: ID.personal, orden: 5 }]);
+    await v1.table('recurrentes').bulkAdd([{ id: 'rec-whey' }, { id: 'rec-creatina' }, { id: ID.recPasaje }]);
+    await v1.table('gastos').add({ id: 'g1', fecha: '2026-11-20', categoriaId: 'cat-ropa', monto: 5000 });
+    v1.close();
+
+    const v2 = new BaseDatos(nombre);
+    expect((await v2.categorias.toArray()).map((c) => c.id)).toEqual([ID.personal]);
+    expect((await v2.recurrentes.toArray()).map((r) => r.id)).toEqual([ID.recPasaje]);
+    expect((await v2.gastos.get('g1'))?.categoriaId).toBe(ID.personal);
   });
 
   it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 290', async () => {
