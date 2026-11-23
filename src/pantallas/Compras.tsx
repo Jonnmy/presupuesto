@@ -94,6 +94,8 @@ export function Compras({ d }: { d: TodosLosDatos }) {
         </table>
       </section>
 
+      <NotasDieta />
+
       {compras.length > 0 && (
         <section className="tarjeta">
           <h2>Compras anteriores</h2>
@@ -117,6 +119,37 @@ export function Compras({ d }: { d: TodosLosDatos }) {
         avisar(`Compra de ${rd(real)} registrada en Dieta`);
       }} />}
     </main>
+  );
+}
+
+function NotasDieta() {
+  return (
+    <section className="tarjeta">
+      <details>
+        <summary className="fuerte" style={{ minHeight: 44, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Notas de la dieta</summary>
+        <div className="pila sec" style={{ marginTop: 6 }}>
+          <div>
+            <p className="fuerte" style={{ color: 'var(--texto)' }}>Batida</p>
+            <p>Con 1.1 L de leche, 4 huevos, 2 guineos, avena y whey salen unos 1.5 a 1.7 L: no cabe en la botella de 1.2 L. Toma el yogurt aparte o lleva un segundo envase de 500 a 750 mL. Usa una licuadora de 1.5 L o más, o hazla en dos tandas.</p>
+          </div>
+          <div>
+            <p className="fuerte" style={{ color: 'var(--texto)' }}>Para añadir (sin quitar nada)</p>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+              <li>Una fruta distinta al guineo: naranja, mango, piña o guayaba.</li>
+              <li>Verduras en el almuerzo y la cena: ensalada, vegetales o aguacate.</li>
+              <li>Pescado 1 o 2 veces por semana: sardinas o atún en lata.</li>
+              <li>Snack a las 3 o 4 p.m., antes del gym: pan con mantequilla de maní o un guineo.</li>
+              <li>Agua con algo de sal si sudas mucho; 55 a 65 oz al día.</li>
+            </ul>
+          </div>
+          <div>
+            <p className="fuerte" style={{ color: 'var(--texto)' }}>Multivitamínico</p>
+            <p>Una toma al día, cerca del 100% del valor diario, sin megadosis ni hierro extra, de los sencillos. Tómalo con comida. No interfiere con la creatina y no reemplaza las verduras. Si tomas algún medicamento, consulta a un farmacéutico.</p>
+          </div>
+          <p className="chico">Cuando tengas los precios de la fruta, verduras, aguacate, sardinas o el multivitamínico, ponlos en el catálogo con su cantidad y el presupuesto de Dieta se ajusta solo.</p>
+        </div>
+      </details>
+    </section>
   );
 }
 

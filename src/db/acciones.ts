@@ -21,7 +21,7 @@ export async function registrarPasaje(fecha: string = hoy(), base: BaseDatos = d
     const ajustes = await base.ajustes.get('ajustes');
     const rec = await base.recurrentes.get(ID.recPasaje);
     await agregarGasto({
-      fecha, monto: ajustes?.pasajeDiario ?? rec?.monto ?? 290, categoriaId: rec?.categoriaId ?? ID.transporte,
+      fecha, monto: ajustes?.pasajeDiario ?? rec?.monto ?? 280, categoriaId: rec?.categoriaId ?? ID.transporte,
       nota: 'Pasaje (hoy trabajé)', origen: 'recurrente', recurrenteId: ID.recPasaje, metodo: 'efectivo',
     }, base);
     return 'creado';

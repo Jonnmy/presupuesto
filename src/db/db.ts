@@ -43,6 +43,30 @@ export class BaseDatos extends Dexie {
       await tx.table('categorias').bulkDelete(viejas);
       await tx.table('recurrentes').bulkDelete(RETIRADOS.recurrentes);
     });
+    // v3: gimnasio RD$2,800 al mes, pasaje RD$280 por día y catálogo de Sirena ampliado.
+    // Solo se cambian los valores que siguen en el valor por defecto anterior, para respetar lo que el usuario editó.
+    this.version(3).stores({}).upgrade(async (tx) => {
+      const ajustes = tx.table('ajustes');
+      const a = (await ajustes.get('ajustes')) as Ajustes | undefined;
+      if (a) {
+        await ajustes.update('ajustes', {
+          ...(a.pasajeDiario === 290 ? { pasajeDiario: 280 } : {}),
+          ...(a.transporteFijoQuincena === 3770 ? { transporteFijoQuincena: 3640 } : {}),
+        });
+      }
+      await tx.table('categorias').where('id').equals(ID.gimnasio)
+        .modify((c: Categoria) => { if (c.presupuestoMensual === 2500) { c.presupuestoMensual = 2800; c.presupuestoQuincenal = 1400; } });
+      await tx.table('recurrentes').where('id').equals(ID.recPasaje).modify((r: Recurrente) => { if (r.monto === 290) r.monto = 280; });
+      await tx.table('recurrentes').where('id').equals(ID.recGimnasio).modify((r: Recurrente) => { if (r.monto === 2500) r.monto = 2800; });
+      const productos = tx.table('productos');
+      for (const p of catalogoInicial()) {
+        const actual = (await productos.get(p.id)) as ProductoSirena | undefined;
+        if (!actual) await productos.add(p);
+        else if (!actual.nota && p.nota) await productos.update(p.id, { nota: p.nota });
+        else if (p.id === 'prod-8' && actual.unidad === 'libra') await productos.update(p.id, { unidad: p.unidad, nota: p.nota });
+        else if (actual.nota && p.nota && p.nota.startsWith(actual.nota) && actual.nota !== p.nota) await productos.update(p.id, { nota: p.nota });
+      }
+    });
   }
 }
 

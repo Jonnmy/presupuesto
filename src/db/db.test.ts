@@ -17,7 +17,7 @@ beforeEach(async () => {
 describe('Base de datos', () => {
   it('siembra sin gastos, ingresos ni depósitos', async () => {
     expect(await base.categorias.count()).toBe(5);
-    expect(await base.productos.count()).toBe(14);
+    expect(await base.productos.count()).toBe(17);
     expect(await base.recurrentes.count()).toBe(2);
     expect(await base.metas.count()).toBe(1);
     expect(await base.gastos.count()).toBe(0);
@@ -42,12 +42,32 @@ describe('Base de datos', () => {
     expect((await v2.gastos.get('g1'))?.categoriaId).toBe(ID.personal);
   });
 
-  it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 290', async () => {
+  it('migración a v3: gimnasio 2,800 y pasaje 280 solo si seguían en el valor anterior; agrega productos nuevos', async () => {
+    const nombre = `migracion-${++n}`;
+    const v1 = new Dexie(nombre);
+    v1.version(1).stores({ ajustes: 'id', categorias: 'id, orden', gastos: 'id, fecha, categoriaId, recurrenteId', ingresos: 'id, fecha', recurrentes: 'id', diasLibres: 'fecha', productos: 'id, orden', compras: 'id, fecha', metas: 'id', depositos: 'id, fecha', planificados: 'id, fecha' });
+    await v1.table('ajustes').add({ id: 'ajustes', pasajeDiario: 290, transporteFijoQuincena: 4000 });
+    await v1.table('categorias').add({ id: ID.gimnasio, orden: 3, presupuestoMensual: 2500, presupuestoQuincenal: 1250 });
+    await v1.table('recurrentes').bulkAdd([{ id: ID.recPasaje, monto: 290 }, { id: ID.recGimnasio, monto: 2500 }]);
+    await v1.table('productos').add({ id: 'prod-1', nombre: 'Huevos', precio: 215, orden: 1, nota: 'mío' });
+    v1.close();
+
+    const v3 = new BaseDatos(nombre);
+    const a = await v3.ajustes.get('ajustes');
+    expect(a?.pasajeDiario).toBe(280);
+    expect(a?.transporteFijoQuincena).toBe(4000); // editado por el usuario: se respeta
+    expect((await v3.categorias.get(ID.gimnasio))?.presupuestoMensual).toBe(2800);
+    expect((await v3.recurrentes.get(ID.recGimnasio))?.monto).toBe(2800);
+    expect((await v3.productos.get('prod-1'))?.precio).toBe(215);
+    expect(await v3.productos.count()).toBe(17);
+  });
+
+  it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 280', async () => {
     expect(await registrarPasaje('2026-11-23', base)).toBe('creado');
     expect(await registrarPasaje('2026-11-23', base)).toBe('duplicado');
     const gastos = await base.gastos.toArray();
     expect(gastos).toHaveLength(1);
-    expect(gastos[0].monto).toBe(290);
+    expect(gastos[0].monto).toBe(280);
     expect(gastos[0].categoriaId).toBe(ID.transporte);
   });
 

@@ -30,28 +30,28 @@ describe('Pruebas de aceptación (sección 12)', () => {
     expect(costoCompraSirena(catalogoInicial(), 'mes')).toBe(7515);
   });
 
-  it('2. Suma de presupuestos de gasto por quincena = 12,494 (sin Suplementos)', () => {
-    expect(totalPresupuestado(Q2_NOV, datos())).toBe(12494);
+  it('2. Suma de presupuestos de gasto por quincena = 12,514', () => {
+    expect(totalPresupuestado(Q2_NOV, datos())).toBe(12514);
   });
 
-  it('3. Meta de ahorro por quincena = 9,506', () => {
-    expect(metaAhorro(Q2_NOV, datos())).toBe(9506);
+  it('3. Meta de ahorro por quincena = 9,486', () => {
+    expect(metaAhorro(Q2_NOV, datos())).toBe(9486);
   });
 
-  it('4. Meta con la inscripción del gimnasio (2,000) = 7,506', () => {
+  it('4. Meta con la inscripción del gimnasio (2,000) = 7,486', () => {
     const d = datos({ planificados: [{ id: 'p', nombre: 'Inscripción del gimnasio', monto: 2000, fecha: '2026-11-22' }] });
-    expect(metaAhorro(Q2_NOV, d)).toBe(7506);
+    expect(metaAhorro(Q2_NOV, d)).toBe(7486);
     // No afecta otras quincenas
-    expect(metaAhorro(quincenaDe('2026-12-01'), { ...d, ajustes: { ...d.ajustes, transporteModo: 'fijo' } })).toBe(9506);
+    expect(metaAhorro(quincenaDe('2026-12-01'), { ...d, ajustes: { ...d.ajustes, transporteModo: 'fijo' } })).toBe(9486);
   });
 
-  it('5. Presupuesto mensual 24,988 y ahorro mensual 19,012 (transporte en modo fijo de 3,770)', () => {
+  it('5. Presupuesto mensual 25,028 y ahorro mensual 18,972 (transporte en modo fijo de 3,640)', () => {
     const d = datos();
     d.ajustes.transporteModo = 'fijo';
     const v = vistaMes({ anio: 2026, mes: 11 }, d);
     expect(v.ingreso).toBe(44000);
-    expect(v.presupuestado).toBe(24988);
-    expect(v.meta).toBe(19012);
+    expect(v.presupuestado).toBe(25028);
+    expect(v.meta).toBe(18972);
   });
 
   it('6. quincenaDe', () => {
@@ -61,17 +61,17 @@ describe('Pruebas de aceptación (sección 12)', () => {
     expect(quincenaDe('2028-02-20').fin).toBe('2028-02-29');
   });
 
-  it('7. 13 días laborables del 16 al 30 nov 2026 y transporte 3,770', () => {
+  it('7. 13 días laborables del 16 al 30 nov 2026 y transporte 13 × 280 = 3,640', () => {
     const d = datos();
     expect(laborablesEnQuincena(Q2_NOV, d.ajustes, [])).toBe(13);
-    expect(presupuestoTransporte(Q2_NOV, d.ajustes, [])).toBe(3770);
+    expect(presupuestoTransporte(Q2_NOV, d.ajustes, [])).toBe(3640);
   });
 
-  it('8. Un día libre baja a 12 laborables y transporte 3,480', () => {
+  it('8. Un día libre baja a 12 laborables y transporte 3,360', () => {
     const d = datos();
     const libres = [{ fecha: '2026-11-18' }];
     expect(laborablesEnQuincena(Q2_NOV, d.ajustes, libres)).toBe(12);
-    expect(presupuestoTransporte(Q2_NOV, d.ajustes, libres)).toBe(3480);
+    expect(presupuestoTransporte(Q2_NOV, d.ajustes, libres)).toBe(3360);
     // Un domingo marcado como libre no cambia nada
     expect(laborablesEnQuincena(Q2_NOV, d.ajustes, [{ fecha: '2026-11-22' }])).toBe(13);
   });
@@ -85,12 +85,12 @@ describe('Pruebas de aceptación (sección 12)', () => {
   });
 
   it('10. La mensualidad completa del gimnasio en una quincena no queda excedida', () => {
-    const d = datos({ gastos: [gasto('2026-11-02', 2500, ID.gimnasio)] });
+    const d = datos({ gastos: [gasto('2026-11-02', 2800, ID.gimnasio)] });
     const mes = vistaMes({ anio: 2026, mes: 11 }, d).filas.find((f) => f.categoria.id === ID.gimnasio)!;
-    expect(mes.presupuesto).toBe(2500);
+    expect(mes.presupuesto).toBe(2800);
     expect(mes.estado).not.toBe('excedido');
     const q1 = vistaQuincena(quincenaDe('2026-11-02'), d).filas.find((f) => f.categoria.id === ID.gimnasio)!;
-    expect(q1.presupuesto).toBe(1250); // provisión
+    expect(q1.presupuesto).toBe(1400); // provisión
     expect(q1.estado).not.toBe('excedido'); // se evalúa contra el mes
   });
 });
@@ -114,14 +114,14 @@ describe('Otros cálculos', () => {
 
   it('proyección: antes de empezar = meta; al terminar = sobrante real', () => {
     const d = datos({ gastos: [gasto('2026-11-17', 6000, ID.personal)] });
-    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-16')).toBe(9506);
+    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-16')).toBe(9486);
     expect(proyeccionAhorro(Q2_NOV, d, '2026-12-05')).toBe(16000);
-    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-01')).toBe(9506);
+    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-01')).toBe(9486);
     // A mitad de quincena sin gastos, la proyección sube; pero si la app se instaló hoy, es la meta
-    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-22')).toBeGreaterThan(9506);
+    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-22')).toBeGreaterThan(9486);
     const nueva = datos();
     nueva.ajustes.creadoEn = '2026-11-22T15:00:00Z';
-    expect(proyeccionAhorro(Q2_NOV, nueva, '2026-11-22')).toBe(9506);
+    expect(proyeccionAhorro(Q2_NOV, nueva, '2026-11-22')).toBe(9486);
   });
 
   it('ahorro acumulado y estimado de meta', () => {
