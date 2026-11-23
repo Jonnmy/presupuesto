@@ -1,0 +1,77 @@
+import 'fake-indexeddb/auto';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { BaseDatos, sembrar } from './db';
+import { agregarGasto, guardarProducto, marcarCompraHecha, registrarPasaje } from './acciones';
+import { borrarTodo, exportarDatos, gastosACsv, importarDatos } from './respaldo';
+import { ID } from '../lib/semilla';
+
+let base: BaseDatos;
+let n = 0;
+
+beforeEach(async () => {
+  base = new BaseDatos(`prueba-${++n}`);
+  await sembrar(base, new Date('2026-11-22T15:00:00Z'));
+});
+
+describe('Base de datos', () => {
+  it('siembra sin gastos, ingresos ni depósitos', async () => {
+    expect(await base.categorias.count()).toBe(8);
+    expect(await base.productos.count()).toBe(14);
+    expect(await base.recurrentes.count()).toBe(4);
+    expect(await base.metas.count()).toBe(1);
+    expect(await base.gastos.count()).toBe(0);
+    expect(await base.ingresos.count()).toBe(0);
+    expect(await base.depositos.count()).toBe(0);
+    await sembrar(base); // idempotente
+    expect(await base.categorias.count()).toBe(8);
+  });
+
+  it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 290', async () => {
+    expect(await registrarPasaje('2026-11-23', base)).toBe('creado');
+    expect(await registrarPasaje('2026-11-23', base)).toBe('duplicado');
+    const gastos = await base.gastos.toArray();
+    expect(gastos).toHaveLength(1);
+    expect(gastos[0].monto).toBe(290);
+    expect(gastos[0].categoriaId).toBe(ID.transporte);
+  });
+
+  it('12. Exportar, borrar todo e importar deja los datos idénticos', async () => {
+    await agregarGasto({ fecha: '2026-11-20', monto: 450, categoriaId: ID.personal, nota: 'Barbería, "corte"', origen: 'manual', metodo: 'efectivo' }, base);
+    await registrarPasaje('2026-11-20', base);
+    await base.depositos.add({ id: 'd1', fecha: '2026-11-30', monto: 7000, metaId: 'meta-emergencia' });
+    await base.diasLibres.add({ fecha: '2026-11-18', motivo: 'Feriado' });
+    const antes = await exportarDatos(base);
+    const json = JSON.stringify(antes);
+
+    await borrarTodo(base);
+    expect(await base.gastos.count()).toBe(0);
+
+    await importarDatos(JSON.parse(json), base);
+    const despues = await exportarDatos(base);
+    expect(despues.datos).toEqual(antes.datos);
+  });
+
+  it('importar rechaza archivos que no son respaldos', async () => {
+    await expect(importarDatos({ hola: 1 } as never, base)).rejects.toThrow();
+  });
+
+  it('marcar compra hecha crea gasto en Dieta y guarda la diferencia', async () => {
+    const g = await marcarCompraHecha(3974, 4100, '2026-11-22', base);
+    expect(g.categoriaId).toBe(ID.dieta);
+    const [c] = await base.compras.toArray();
+    expect(c.real - c.estimado).toBe(126);
+  });
+
+  it('cambiar un precio recalcula el presupuesto de Dieta', async () => {
+    const huevos = (await base.productos.get('prod-1'))!;
+    const r = await guardarProducto({ ...huevos, precio: 215 }, base);
+    expect(r).toEqual({ antes: 3974, despues: 4014 });
+    expect((await base.categorias.get(ID.dieta))!.presupuestoMensual).toBe(7595);
+  });
+
+  it('CSV de gastos', async () => {
+    await agregarGasto({ fecha: '2026-11-20', monto: 450, categoriaId: ID.personal, nota: 'a, b', origen: 'manual' }, base);
+    const csv = gastosACsv(await base.gastos.toArray(), await base.categorias.toArray());
+    expect(csv.split('\r\n')[1]).toBe('2026-11-20,450,Gastos personales,"a, b",,manual');
+  });
+});

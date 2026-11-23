@@ -1,0 +1,7 @@
+node_modules
+dist
+*.log
+# Los íconos PNG se generan con `npm run iconos` a partir de public/icono.svg
+public/*.png
+public/favicon.ico
+.claude

@@ -1,0 +1,48 @@
+# Quincena: control de gastos y ahorros
+
+App personal para saber, cada quincena, cuánto entra, cuánto se ha gastado por categoría y cuánto queda para ahorrar. Funciona en el teléfono, se instala como app y trabaja sin internet. Los datos se guardan solo en el dispositivo (IndexedDB); no hay cuentas ni servidor.
+
+**Dirección:** https://jonnmy.github.io/presupuesto/
+
+## Instalarla en el teléfono (Android)
+
+1. Abre la dirección de arriba en **Chrome**.
+2. Toca el menú **⋮** y elige **Instalar app** (o **Agregar a la pantalla principal**).
+3. Ábrela desde el ícono. Desde ese momento funciona sin internet.
+
+Cada teléfono o navegador tiene sus propios datos. Si usas la app en el teléfono, registra todo ahí.
+
+## Respaldo de los datos
+
+Como los datos viven solo en el teléfono, si borras los datos de Chrome o cambias de teléfono, se pierden. Para evitarlo:
+
+1. Ve a **Ajustes → Respaldo de datos → Exportar respaldo (JSON)**.
+2. Guarda el archivo en Google Drive o envíatelo por correo.
+3. Para recuperarlo: **Ajustes → Importar respaldo** y elige el archivo. Reemplaza los datos actuales.
+
+La app te recuerda hacer un respaldo cada 15 días. También puedes exportar los gastos a CSV para abrirlos en Excel o Google Sheets.
+
+## Correrla en la computadora
+
+Necesitas [Node.js](https://nodejs.org) 20 o más reciente.
+
+```powershell
+npm install
+npm run iconos   # genera los íconos PNG a partir de public/icono.svg
+npm run dev      # abre http://localhost:5173/presupuesto/
+npm test         # pruebas de los cálculos
+npm run build    # compila en dist/
+```
+
+## Publicación
+
+Cada cambio en la rama `main` ejecuta las pruebas, compila y publica en GitHub Pages (`.github/workflows/publicar.yml`).
+
+## Decisiones sobre la especificación
+
+- **Estado al 100 %:** una categoría queda *excedida* solo cuando el gasto pasa el presupuesto. Si es exactamente igual queda en ámbar. Así, pagar la mensualidad completa del gimnasio (2,500 de 2,500) no sale en rojo (prueba 10).
+- **Proyección de ahorro:** gasto proyectado = lo gastado + la parte del presupuesto que corresponde a los días que faltan. Antes de empezar la quincena coincide con la meta y al terminar coincide con lo que sobró. Si la app se empezó a usar a mitad de quincena, los días anteriores no cuentan.
+- **Presupuesto mensual (prueba 5):** 29,268 sale con transporte en modo fijo (2 × 3,770). En modo calendario el mes usa los días laborables reales de cada quincena.
+- **Inscripción del gimnasio:** está como *gasto único planificado* (Presupuesto → Gastos únicos planificados) en la quincena del primer uso y baja esa meta a RD$5,366. Cuando la pagues, regístrala también como gasto.
+- **Dieta:** su presupuesto se recalcula cuando cambias precios o cantidades en el catálogo de Sirena.
+- **Recurrentes automáticos:** vienen desactivados. Al activarlos se registran solos desde ese día, nunca en fechas anteriores ni dos veces en la misma fecha.
