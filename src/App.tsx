@@ -9,6 +9,10 @@ import { Ahorro } from './pantallas/Ahorro';
 import { Compras } from './pantallas/Compras';
 import { Ajustes } from './pantallas/Ajustes';
 import { Presupuesto } from './pantallas/Presupuesto';
+import { Simple } from './pantallas/Simple';
+
+/** Modo sencillo: solo ingreso y apartados. Las demás pantallas siguen en el código para más adelante. */
+const SENCILLO = true;
 
 type Ruta = 'resumen' | 'gastos' | 'ahorro' | 'compras' | 'ajustes' | 'presupuesto';
 const RUTAS: Ruta[] = ['resumen', 'gastos', 'ahorro', 'compras', 'ajustes', 'presupuesto'];
@@ -45,7 +49,7 @@ export default function App() {
       if (e.key.toLowerCase() !== 'n' || e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
-      if (document.querySelector('[role="dialog"]')) return;
+      if (SENCILLO || document.querySelector('[role="dialog"]')) return;
       e.preventDefault();
       setForm({ tipo: 'gasto' });
     };
@@ -83,13 +87,15 @@ export default function App() {
             {oscuro ? '☀ Claro' : '☾ Oscuro'}
           </button>
         </header>
-        {ruta === 'resumen' && <Resumen d={d} />}
-        {ruta === 'gastos' && <Gastos d={d} />}
-        {ruta === 'ahorro' && <Ahorro d={d} />}
-        {ruta === 'compras' && <Compras d={d} />}
-        {ruta === 'ajustes' && <Ajustes d={d} />}
-        {ruta === 'presupuesto' && <Presupuesto d={d} />}
+        {SENCILLO && <Simple a={d.ajustes} />}
+        {!SENCILLO && ruta === 'resumen' && <Resumen d={d} />}
+        {!SENCILLO && ruta === 'gastos' && <Gastos d={d} />}
+        {!SENCILLO && ruta === 'ahorro' && <Ahorro d={d} />}
+        {!SENCILLO && ruta === 'compras' && <Compras d={d} />}
+        {!SENCILLO && ruta === 'ajustes' && <Ajustes d={d} />}
+        {!SENCILLO && ruta === 'presupuesto' && <Presupuesto d={d} />}
       </div>
+      {!SENCILLO && <>
       <button className="fab" onClick={() => abrirGasto(undefined, 'gasto')} aria-label="Agregar gasto (atajo N)">+ Gasto <kbd aria-hidden="true">N</kbd></button>
       <nav className="nav" aria-label="Secciones">
         {(Object.keys(NOMBRES) as (keyof typeof NOMBRES)[]).map((r) => (
@@ -99,6 +105,7 @@ export default function App() {
           </a>
         ))}
       </nav>
+      </>}
       {form && <FormGasto gasto={form.gasto} tipo={form.tipo} categorias={d.categorias} corte={d.ajustes.diaPago1} onCerrar={() => setForm(null)} />}
     </ProveedorUi>
   );

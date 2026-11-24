@@ -3,6 +3,8 @@ export type Id = string;
 export interface Ajustes {
   id: 'ajustes';
   ingresoQuincenal: number;
+  /** Pantalla sencilla: lo que se aparta cada quincena. */
+  apartados?: { id: string; nombre: string; monto: number }[];
   ingresoMensualReferencia?: number;
   diaPago1: number; // último día de la quincena 1 (por defecto 15)
   diaPago2: 'fin';
