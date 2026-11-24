@@ -58,15 +58,27 @@ export function catalogoInicial(): ProductoSirena[] {
     p(8, 'Queso Gouda Wala en lonjas', 220, 'paquete (1 lb)', 2, 3, '2 lonjas al día (unas 20 por libra, sin verificar)'),
     p(9, 'Atún Zerca desmenuzado en aceite 170 g', 56, 'lata', 4, 8, '2 latas por semana. En aceite: más calorías; unos 25 a 30 g de proteína por lata (estimado)'),
     p(10, 'Lechuga dulce', 36, 'unidad', 5, 10, '1 cada 3 días. Combínala con tomate, zanahoria o pepino'),
-    p(11, 'Multivitamínico', 0, 'frasco', 0, 0, 'Una toma al día, cerca del 100% del valor diario, sin hierro extra. Con comida'),
-    p(12, 'Tomate', 0, 'libra', 0, 0),
-    p(13, 'Zanahoria', 0, 'libra', 0, 0),
-    p(14, 'Pepino', 0, 'unidad', 0, 0),
-    p(15, 'Fruta variada (naranja, mango, piña o guayaba)', 0, 'libra', 0, 0, 'Una fruta distinta al guineo: vitamina C y variedad'),
-    p(16, 'Aguacate', 0, 'unidad', 0, 0, 'Para el almuerzo o la cena'),
-    p(17, 'Sardinas en lata', 0, 'lata', 0, 0, 'Pescado 1 o 2 veces por semana: omega-3'),
+    // Opcionales: precios de sirena.do (22 nov 2026). Cantidad 0 = no entran en la lista ni en el presupuesto hasta que les pongas cantidad.
+    p(11, 'Multivitamínico Centrum Energía 45 tabletas', 1000, 'frasco', 0, 0, 'El único multivitamínico en sirena.do; es fórmula "energía". 45 tabletas: 1 frasco cada mes y medio. Una toma al día, con comida'),
+    p(12, 'Tomate de ensalada', 46, 'libra', 0, 0, 'Para acompañar la lechuga'),
+    p(13, 'Zanahoria fresca', 30, 'libra', 0, 0, 'Para acompañar la lechuga'),
+    p(14, 'Pepino fresco', 24, 'libra', 0, 0, 'Para acompañar la lechuga'),
+    p(16, 'Aguacate 35% maduro', 45, 'unidad', 0, 0, 'Grasas buenas y calorías; para el almuerzo o la cena'),
+    p(17, 'Sardinas en aceite Zerca 125 g', 29, 'lata', 0, 0, 'Pescado 1 o 2 veces por semana: omega-3'),
+    p(18, 'Naranja de jugo', 56, 'libra', 0, 0, 'Vitamina C'),
+    p(19, 'Mango banilejo', 11, 'unidad', 0, 0, 'Barato en temporada; también hay Gota de oro a RD$34'),
+    p(20, 'Piña', 106, 'unidad', 0, 0, 'Rinde para varios días'),
+    p(21, 'Guayaba fresca', 54, 'libra', 0, 0, 'De las frutas con más vitamina C'),
+    p(22, 'Lechosa entera', 20, 'libra', 0, 0, 'De las más baratas por libra; buena para la digestión'),
+    p(23, 'Manzana roja', 89, 'libra', 0, 0, 'Fácil de llevar al trabajo'),
+    p(24, 'Chinola', 88, 'libra', 0, 0, 'Para jugo'),
+    p(25, 'Melón cantaloupe', 99, 'unidad', 0, 0),
+    p(26, 'Sandía', 30, 'libra', 0, 0, 'Hidrata; se vende la pieza entera por peso'),
   ];
 }
+
+/** Productos de versiones anteriores que se quitaron del catálogo (solo se borran si el usuario no los tocó). */
+export const PRODUCTOS_RETIRADOS = ['prod-15'];
 
 export function recurrentesIniciales(): Recurrente[] {
   return [

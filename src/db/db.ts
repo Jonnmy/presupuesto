@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import { hoy } from '../lib/fechas';
 import {
-  ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, planificadosIniciales, recurrentesIniciales, RETIRADOS,
+  ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, planificadosIniciales, PRODUCTOS_RETIRADOS, recurrentesIniciales, RETIRADOS,
 } from '../lib/semilla';
 import type {
   Ajustes, Categoria, CompraSirena, DepositoAhorro, DiaLibre, Gasto, GastoPlanificado, Ingreso, MetaAhorro, ProductoSirena, Recurrente,
@@ -65,6 +65,20 @@ export class BaseDatos extends Dexie {
         else if (!actual.nota && p.nota) await productos.update(p.id, { nota: p.nota });
         else if (p.id === 'prod-8' && actual.unidad === 'libra') await productos.update(p.id, { unidad: p.unidad, nota: p.nota });
         else if (actual.nota && p.nota && p.nota.startsWith(actual.nota) && actual.nota !== p.nota) await productos.update(p.id, { nota: p.nota });
+      }
+    });
+    // v4: precios de frutas, verduras, sardinas y multivitamínico tomados de sirena.do.
+    // Solo se llenan los productos que seguían sin precio; lo que el usuario editó se respeta.
+    this.version(4).stores({}).upgrade(async (tx) => {
+      const productos = tx.table('productos');
+      for (const id of PRODUCTOS_RETIRADOS) {
+        const p = (await productos.get(id)) as ProductoSirena | undefined;
+        if (p && p.precio === 0 && p.cantidadQuincena === 0 && p.cantidadMes === 0) await productos.delete(id);
+      }
+      for (const p of catalogoInicial()) {
+        const actual = (await productos.get(p.id)) as ProductoSirena | undefined;
+        if (!actual) await productos.add(p);
+        else if (actual.precio === 0 && p.precio > 0) await productos.update(p.id, { nombre: p.nombre, precio: p.precio, unidad: p.unidad, nota: p.nota });
       }
     });
   }

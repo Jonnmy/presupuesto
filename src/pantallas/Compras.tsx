@@ -14,14 +14,20 @@ export function Compras({ d }: { d: TodosLosDatos }) {
   const [marcas, setMarcas] = useState<string[]>(() => JSON.parse(localStorage.getItem(CLAVE_MARCAS) ?? '[]'));
   const [producto, setProducto] = useState<ProductoSirena | 'nuevo' | null>(null);
   const [comprando, setComprando] = useState(false);
+  const [periodo, setPeriodo] = useState<'quincena' | 'mes'>(() => (localStorage.getItem('compraPeriodo') === 'mes' ? 'mes' : 'quincena'));
   useEffect(() => localStorage.setItem(CLAVE_MARCAS, JSON.stringify(marcas)), [marcas]);
+  useEffect(() => localStorage.setItem('compraPeriodo', periodo), [periodo]);
 
+  const cant = (p: ProductoSirena) => (periodo === 'quincena' ? p.cantidadQuincena : p.cantidadMes);
   const activos = d.productos.filter((p) => p.activo);
-  const aComprar = activos.filter((p) => p.cantidadQuincena > 0);
+  const aComprar = activos.filter((p) => cant(p) > 0);
+  const opcionales = activos.filter((p) => cant(p) === 0 && p.precio > 0);
   const sinPrecio = activos.filter((p) => p.precio === 0);
-  const estimado = costoCompraSirena(d.productos, 'quincena');
+  const quincena = costoCompraSirena(d.productos, 'quincena');
   const mes = costoCompraSirena(d.productos, 'mes');
-  const enCarrito = aComprar.filter((p) => marcas.includes(p.id)).reduce((s, p) => s + p.precio * p.cantidadQuincena, 0);
+  const estimado = periodo === 'quincena' ? quincena : mes;
+  const enCarrito = aComprar.filter((p) => marcas.includes(p.id)).reduce((s, p) => s + p.precio * cant(p), 0);
+  const etiqueta = periodo === 'quincena' ? '15 días' : 'un mes';
   const compras = [...d.compras].sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 6);
 
   async function guardar(p: ProductoSirena) {
@@ -31,14 +37,20 @@ export function Compras({ d }: { d: TodosLosDatos }) {
 
   return (
     <main>
-      <div className="cabecera"><h1>Compras de Sirena</h1></div>
+      <div className="cabecera">
+        <h1>Compras de Sirena</h1>
+        <div className="segmentado" role="group" aria-label="Ver compra">
+          <button aria-pressed={periodo === 'quincena'} onClick={() => setPeriodo('quincena')}>Quincenal</button>
+          <button aria-pressed={periodo === 'mes'} onClick={() => setPeriodo('mes')}>Mensual</button>
+        </div>
+      </div>
 
       <section className="tarjeta" style={{ position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="fila">
           <div>
-            <div className="sec chico">Compra de 15 días (estimado)</div>
+            <div className="sec chico">Compra de {etiqueta} (estimado)</div>
             <div className="grande num">{rd(estimado)}</div>
-            <div className="sec chico num">En el carrito: {rd(enCarrito)} · Mes: {rd(mes)}</div>
+            <div className="sec chico num">En el carrito: {rd(enCarrito)} · {periodo === 'quincena' ? `Mes: ${rd(mes)}` : `Quincena: ${rd(quincena)}`}</div>
           </div>
           <button className="btn primario" onClick={() => setComprando(true)}>Marcar compra hecha</button>
         </div>
@@ -46,7 +58,7 @@ export function Compras({ d }: { d: TodosLosDatos }) {
 
       <section className="tarjeta">
         <div className="fila" style={{ marginBottom: 6 }}>
-          <h2>Lista para 15 días</h2>
+          <h2>Lista para {etiqueta}</h2>
           {marcas.length > 0 && <button className="btn plano" onClick={() => setMarcas([])}>Desmarcar todo</button>}
         </div>
         <ul className="lista">
@@ -57,16 +69,34 @@ export function Compras({ d }: { d: TodosLosDatos }) {
                   <input type="checkbox" checked={marcas.includes(p.id)} onChange={(e) => setMarcas(e.target.checked ? [...marcas, p.id] : marcas.filter((x) => x !== p.id))} />
                   <span style={{ minWidth: 0, textDecoration: marcas.includes(p.id) ? 'line-through' : undefined }}>
                     <span>{p.nombre}</span><br />
-                    <span className="sec chico num">{p.cantidadQuincena} × {p.unidad} · {p.precio ? rd(p.precio) : 'precio por definir'}</span>
+                    <span className="sec chico num">{cant(p)} × {p.unidad} · {p.precio ? rd(p.precio) : 'precio por definir'}</span>
                   </span>
                 </span>
-                <span className="num fuerte">{rd(p.precio * p.cantidadQuincena)}</span>
+                <span className="num fuerte">{rd(p.precio * cant(p))}</span>
               </label>
             </li>
           ))}
         </ul>
         {sinPrecio.length > 0 && <p className="sec chico" style={{ marginTop: 8 }}>Sin precio todavía: {sinPrecio.map((p) => p.nombre).join(', ')}. Edítalos en el catálogo.</p>}
       </section>
+
+      {opcionales.length > 0 && (
+        <section className="tarjeta">
+          <h2>Frutas y extras para añadir</h2>
+          <p className="sec chico" style={{ margin: '4px 0 6px' }}>Precios de sirena.do (22 nov 2026). No están en la lista ni en el presupuesto hasta que les pongas cantidad.</p>
+          <ul className="lista">
+            {opcionales.map((p) => (
+              <li key={p.id} className="fila">
+                <span style={{ minWidth: 0 }}>
+                  <span>{p.nombre}</span><br />
+                  <span className="sec chico num">{rd(p.precio)} por {p.unidad}{p.nota ? ` · ${p.nota}` : ''}</span>
+                </span>
+                <button className="btn" onClick={() => setProducto(p)} aria-label={`Añadir ${p.nombre} a la lista`}>Añadir</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="tarjeta">
         <div className="fila" style={{ marginBottom: 6 }}>
@@ -90,7 +120,7 @@ export function Compras({ d }: { d: TodosLosDatos }) {
               </tr>
             ))}
           </tbody>
-          <tfoot><tr><td>Total</td><td /><td className="n" colSpan={2}>{rd(estimado)} / {rd(mes)}</td></tr></tfoot>
+          <tfoot><tr><td>Total</td><td /><td className="n" colSpan={2}>{rd(quincena)} / {rd(mes)}</td></tr></tfoot>
         </table>
       </section>
 

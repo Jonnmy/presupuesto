@@ -17,7 +17,7 @@ beforeEach(async () => {
 describe('Base de datos', () => {
   it('siembra sin gastos, ingresos ni depósitos', async () => {
     expect(await base.categorias.count()).toBe(5);
-    expect(await base.productos.count()).toBe(17);
+    expect(await base.productos.count()).toBe(25);
     expect(await base.recurrentes.count()).toBe(2);
     expect(await base.metas.count()).toBe(1);
     expect(await base.gastos.count()).toBe(0);
@@ -49,7 +49,11 @@ describe('Base de datos', () => {
     await v1.table('ajustes').add({ id: 'ajustes', pasajeDiario: 290, transporteFijoQuincena: 4000 });
     await v1.table('categorias').add({ id: ID.gimnasio, orden: 3, presupuestoMensual: 2500, presupuestoQuincenal: 1250 });
     await v1.table('recurrentes').bulkAdd([{ id: ID.recPasaje, monto: 290 }, { id: ID.recGimnasio, monto: 2500 }]);
-    await v1.table('productos').add({ id: 'prod-1', nombre: 'Huevos', precio: 215, orden: 1, nota: 'mío' });
+    await v1.table('productos').bulkAdd([
+      { id: 'prod-1', nombre: 'Huevos', precio: 215, orden: 1, nota: 'mío' },
+      { id: 'prod-12', nombre: 'Tomate', precio: 0, unidad: 'libra', cantidadQuincena: 0, cantidadMes: 0, orden: 12 },
+      { id: 'prod-15', nombre: 'Fruta variada', precio: 0, cantidadQuincena: 0, cantidadMes: 0, orden: 15 },
+    ]);
     v1.close();
 
     const v3 = new BaseDatos(nombre);
@@ -59,7 +63,9 @@ describe('Base de datos', () => {
     expect((await v3.categorias.get(ID.gimnasio))?.presupuestoMensual).toBe(2800);
     expect((await v3.recurrentes.get(ID.recGimnasio))?.monto).toBe(2800);
     expect((await v3.productos.get('prod-1'))?.precio).toBe(215);
-    expect(await v3.productos.count()).toBe(17);
+    expect(await v3.productos.count()).toBe(25);
+    expect((await v3.productos.get('prod-12'))?.precio).toBe(46); // v4: precio de sirena.do
+    expect(await v3.productos.get('prod-15')).toBeUndefined();
   });
 
   it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 280', async () => {
