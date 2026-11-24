@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import { costoCompraSirena } from '../lib/calculos';
 import { hoy } from '../lib/fechas';
 import {
-  ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, CANTIDADES_V5, planificadosIniciales, PRODUCTOS_RETIRADOS, recurrentesIniciales, RETIRADOS,
+  BLOQUE_POR_CLAVE, BLOQUES_INICIALES, SERVICIOS_INICIAL, ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, CANTIDADES_V5, planificadosIniciales, PRODUCTOS_RETIRADOS, recurrentesIniciales, RETIRADOS,
 } from '../lib/semilla';
 import type {
   Ajustes, Categoria, CompraSirena, DepositoAhorro, DiaLibre, Gasto, GastoPlanificado, Ingreso, MetaAhorro, ProductoSirena, Recurrente,
@@ -101,6 +101,24 @@ export class BaseDatos extends Dexie {
       if (dieta && dieta.presupuestoQuincenal === base) {
         await tx.table('categorias').update(ID.dieta, { presupuestoQuincenal: costoCompraSirena(todos, 'quincena'), presupuestoMensual: costoCompraSirena(todos, 'mes') });
       }
+    });
+    // v6: rediseño. Bloques 50/30/20, gastos fijos, categoría de servicios y suscripciones, tema oscuro por defecto.
+    this.version(6).stores({}).upgrade(async (tx) => {
+      const ajustes = tx.table('ajustes');
+      const a = (await ajustes.get('ajustes')) as Ajustes | undefined;
+      if (a) {
+        await ajustes.update('ajustes', {
+          ...(a.bloques ? {} : { bloques: { ...BLOQUES_INICIALES } }),
+          ...(a.tema === 'sistema' ? { tema: 'oscuro' } : {}),
+        });
+      }
+      const categorias = tx.table('categorias');
+      await categorias.toCollection().modify((c: Categoria) => {
+        const def = c.clave ? BLOQUE_POR_CLAVE[c.clave] : undefined;
+        if (!c.bloque) c.bloque = def?.bloque ?? (c.tipo === 'ahorro' ? 'ahorro' : 'estilo');
+        if (c.fijo === undefined && def?.fijo) c.fijo = true;
+      });
+      if (a && !(await categorias.get(SERVICIOS_INICIAL.id))) await categorias.add({ ...SERVICIOS_INICIAL });
     });
   }
 }

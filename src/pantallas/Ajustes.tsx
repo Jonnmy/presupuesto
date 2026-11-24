@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { db } from '../db/db';
-import { agregarGasto, aplicarRecurrentes } from '../db/acciones';
+import { agregarGasto, aplicarRecurrentes, recalcularServicios } from '../db/acciones';
 import { borrarTodo, descargar, exportarDatos, gastosACsv, importarDatos, validarRespaldo } from '../db/respaldo';
 import { yaRegistrado } from '../lib/calculos';
 import { formatoFecha, hoy } from '../lib/fechas';
-import { rd } from '../lib/formato';
-import type { Ajustes as TAjustes, Recurrente } from '../lib/tipos';
+import { nuevoId, rd } from '../lib/formato';
+import type { Ajustes as TAjustes, Bloque, Categoria, Recurrente } from '../lib/tipos';
+import { NOMBRE_BLOQUE } from './Resumen';
 import { CeldaNumero, Confirmar, Dialogo } from '../ui/comunes';
 import { useUi, type TodosLosDatos } from '../ui/contexto';
 
@@ -18,6 +19,7 @@ export function Ajustes({ d }: { d: TodosLosDatos }) {
   const [libre, setLibre] = useState({ fecha: '', motivo: '' });
   const [borrar, setBorrar] = useState<0 | 1 | 2>(0);
   const [importar, setImportar] = useState<unknown>(null);
+  const [nuevaSus, setNuevaSus] = useState(false);
   const archivo = useRef<HTMLInputElement>(null);
   const nombreCat = new Map(d.categorias.map((c) => [c.id, c.nombre]));
   const libres = [...d.diasLibres].sort((x, y) => x.fecha.localeCompare(y.fecha));
@@ -78,6 +80,21 @@ export function Ajustes({ d }: { d: TodosLosDatos }) {
       </section>
 
       <section className="tarjeta pila">
+        <h2>Reparto del ingreso</h2>
+        <p className="sec chico">Porcentaje del ingreso para cada bloque. La regla clásica es 50 / 30 / 20.</p>
+        <div className="tres-col">
+          {(['necesidades', 'estilo', 'ahorro'] as Bloque[]).map((k) => (
+            <label key={k} className="campo"><span>{NOMBRE_BLOQUE[k]} (%)</span>
+              <CeldaNumero etiqueta={`${NOMBRE_BLOQUE[k]} en porcentaje`} valor={a.bloques[k]} onCambio={(n) => set({ bloques: { ...a.bloques, [k]: Math.min(100, n) } })} />
+            </label>
+          ))}
+        </div>
+        {(() => { const suma = a.bloques.necesidades + a.bloques.estilo + a.bloques.ahorro; return (
+          <p className={suma === 100 ? 'sec chico' : 't-alerta chico'}>Suma: {suma}%{suma !== 100 ? ' — debería ser 100%.' : ''} Cada categoría pertenece a un bloque (se cambia en Presupuesto).</p>
+        ); })()}
+      </section>
+
+      <section className="tarjeta pila">
         <h2>Trabajo y transporte</h2>
         <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="campo-etq">Días laborables</legend>
@@ -117,17 +134,24 @@ export function Ajustes({ d }: { d: TodosLosDatos }) {
       </section>
 
       <section className="tarjeta">
-        <h2>Gastos recurrentes</h2>
+        <div className="tarjeta-cab"><h2>Fijos y suscripciones</h2><button className="btn chico" onClick={() => setNuevaSus(true)}>+ Suscripción o servicio</button></div>
         <p className="sec chico" style={{ marginBottom: 6 }}>En automático se registran solos al abrir la app, desde el día en que lo activas. Nunca se duplican en la misma fecha.</p>
         <ul className="lista">
-          {d.recurrentes.map((r) => <FilaRecurrente key={r.id} r={r} categoria={nombreCat.get(r.categoriaId) ?? ''} onAuto={cambiarAuto} onAhora={registrarAhora} />)}
+          {d.recurrentes.map((r) => <FilaRecurrente key={r.id} r={r} categoria={nombreCat.get(r.categoriaId) ?? ''} categorias={d.categorias} onAuto={cambiarAuto} onAhora={registrarAhora} />)}
         </ul>
+        {nuevaSus && (
+          <Dialogo titulo="Nueva suscripción o servicio" onCerrar={() => setNuevaSus(false)}>
+            <EditorRecurrente nuevo categorias={d.categorias} onCerrar={() => setNuevaSus(false)} r={{
+              id: nuevoId(), nombre: '', categoriaId: 'cat-servicios', monto: 0, frecuencia: 'mensual', diaDelMes: Number(hoy().slice(8)), automatico: true, activo: true, desde: hoy(),
+            }} />
+          </Dialogo>
+        )}
       </section>
 
       <section className="tarjeta pila">
         <h2>Apariencia</h2>
         <div className="segmentado" role="group" aria-label="Tema">
-          {(['sistema', 'claro', 'oscuro'] as const).map((t) => (
+          {(['oscuro', 'claro', 'sistema'] as const).map((t) => (
             <button key={t} aria-pressed={a.tema === t} onClick={() => set({ tema: t })} style={{ textTransform: 'capitalize' }}>{t}</button>
           ))}
         </div>
@@ -163,11 +187,12 @@ export function Ajustes({ d }: { d: TodosLosDatos }) {
 
 function textoFrecuencia(r: Recurrente) {
   if (r.frecuencia === 'diaria-laboral') return 'Cada día laborable';
+  if (r.frecuencia === 'quincenal') return `Cada quincena, día ${r.diaDelMes ?? 1} de cada una`;
   if (r.frecuencia === 'mensual') return `Mensual, día ${r.diaDelMes ?? 1}`;
   return `Cada ${r.cadaNMeses ?? 1} ${(r.cadaNMeses ?? 1) === 1 ? 'mes' : 'meses'}, día ${r.diaDelMes ?? 1}`;
 }
 
-function FilaRecurrente({ r, categoria, onAuto, onAhora }: { r: Recurrente; categoria: string; onAuto: (r: Recurrente, v: boolean) => void; onAhora: (r: Recurrente) => void }) {
+function FilaRecurrente({ r, categoria, categorias, onAuto, onAhora }: { r: Recurrente; categoria: string; categorias: Categoria[]; onAuto: (r: Recurrente, v: boolean) => void; onAhora: (r: Recurrente) => void }) {
   const [editar, setEditar] = useState(false);
   return (
     <li>
@@ -184,37 +209,82 @@ function FilaRecurrente({ r, categoria, onAuto, onAhora }: { r: Recurrente; cate
       </div>
       {editar && (
         <Dialogo titulo={`Editar ${r.nombre}`} onCerrar={() => setEditar(false)}>
-          <EditorRecurrente r={r} onCerrar={() => setEditar(false)} />
+          <EditorRecurrente r={r} categorias={categorias} onCerrar={() => setEditar(false)} />
         </Dialogo>
       )}
     </li>
   );
 }
 
-function EditorRecurrente({ r, onCerrar }: { r: Recurrente; onCerrar: () => void }) {
+const FIJOS_SEMILLA = ['rec-pasaje', 'rec-gimnasio'];
+
+function EditorRecurrente({ r, categorias, nuevo, onCerrar }: { r: Recurrente; categorias: Categoria[]; nuevo?: boolean; onCerrar: () => void }) {
+  const { avisar } = useUi();
   const [x, setX] = useState(r);
+  const [error, setError] = useState('');
+  const diario = x.frecuencia === 'diaria-laboral';
+  async function guardar() {
+    if (!x.nombre.trim()) return setError('Escribe un nombre.');
+    if (!(x.monto > 0)) return setError('Escribe un monto mayor que 0.');
+    await db.recurrentes.put({ ...x, nombre: x.nombre.trim() });
+    if (x.id === 'rec-pasaje') await db.ajustes.update('ajustes', { pasajeDiario: x.monto });
+    await recalcularServicios();
+    if (nuevo && x.automatico) await aplicarRecurrentes();
+    avisar(nuevo ? `${x.nombre.trim()} agregado` : 'Cambios guardados');
+    onCerrar();
+  }
+  async function borrar() {
+    await db.recurrentes.delete(r.id);
+    await recalcularServicios();
+    avisar(`${r.nombre} eliminado. Los gastos ya registrados se conservan.`);
+    onCerrar();
+  }
   return (
     <div className="pila">
+      {!FIJOS_SEMILLA.includes(x.id) && (
+        <label className="campo"><span>Nombre</span><input type="text" value={x.nombre} maxLength={40} placeholder="Ej.: Internet, Netflix, celular" autoFocus={nuevo} onChange={(e) => setX({ ...x, nombre: e.target.value })} /></label>
+      )}
       <label className="campo"><span>Monto (RD$)</span><CeldaNumero etiqueta="Monto" valor={x.monto} onCambio={(n) => setX({ ...x, monto: n })} /></label>
-      {x.frecuencia !== 'diaria-laboral' && (
-        <div className="dos-col">
-          <label className="campo"><span>Día del mes</span>
-            <select value={x.diaDelMes ?? 1} onChange={(e) => setX({ ...x, diaDelMes: Number(e.target.value) })}>
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-          {x.frecuencia === 'cada-n-meses' && (
-            <label className="campo"><span>Cada cuántos meses</span>
-              <select value={x.cadaNMeses ?? 1} onChange={(e) => setX({ ...x, cadaNMeses: Number(e.target.value) })}>
-                {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
+      {!diario && (
+        <>
+          <div className="dos-col">
+            <label className="campo"><span>Frecuencia</span>
+              <select value={x.frecuencia} onChange={(e) => setX({ ...x, frecuencia: e.target.value as Recurrente['frecuencia'] })}>
+                <option value="mensual">Mensual</option>
+                <option value="quincenal">Cada quincena</option>
+                <option value="cada-n-meses">Cada varios meses</option>
               </select>
             </label>
-          )}
-        </div>
+            <label className="campo"><span>{x.frecuencia === 'quincenal' ? 'Día dentro de la quincena' : 'Día del mes'}</span>
+              <select value={x.diaDelMes ?? 1} onChange={(e) => setX({ ...x, diaDelMes: Number(e.target.value) })}>
+                {Array.from({ length: x.frecuencia === 'quincenal' ? 15 : 31 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="dos-col">
+            <label className="campo"><span>Categoría</span>
+              <select value={x.categoriaId} onChange={(e) => setX({ ...x, categoriaId: e.target.value })}>
+                {categorias.filter((c) => c.tipo === 'gasto' && (c.activa || c.id === x.categoriaId)).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </label>
+            {x.frecuencia === 'cada-n-meses' ? (
+              <label className="campo"><span>Cada cuántos meses</span>
+                <select value={x.cadaNMeses ?? 2} onChange={(e) => setX({ ...x, cadaNMeses: Number(e.target.value) })}>
+                  {[2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </label>
+            ) : <div />}
+          </div>
+          {nuevo && <label className="check"><input type="checkbox" checked={x.automatico} onChange={(e) => setX({ ...x, automatico: e.target.checked })} /> Registrar automáticamente</label>}
+        </>
       )}
-      <div className="acciones">
-        <button className="btn" onClick={onCerrar}>Cancelar</button>
-        <button className="btn primario" onClick={async () => { await db.recurrentes.put(x); if (x.id === 'rec-pasaje') await db.ajustes.update('ajustes', { pasajeDiario: x.monto }); onCerrar(); }}>Guardar</button>
+      {error && <p className="t-excedido" role="alert">{error}</p>}
+      <div className="acciones" style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        {!nuevo && !FIJOS_SEMILLA.includes(x.id) ? <button className="btn peligro" onClick={borrar}>Eliminar</button> : <span />}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn" onClick={onCerrar}>Cancelar</button>
+          <button className="btn primario" onClick={guardar}>Guardar</button>
+        </div>
       </div>
     </div>
   );

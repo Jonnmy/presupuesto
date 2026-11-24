@@ -5,7 +5,8 @@ import {
 } from '../lib/calculos';
 import { formatoFecha, formatoQuincena, hoy, quincenaDe } from '../lib/fechas';
 import { nuevoId, rd } from '../lib/formato';
-import type { Categoria, GastoPlanificado } from '../lib/tipos';
+import type { Bloque, Categoria, GastoPlanificado } from '../lib/tipos';
+import { NOMBRE_BLOQUE } from './Resumen';
 import { CampoMonto, CeldaNumero, Dialogo } from '../ui/comunes';
 import { useUi, type TodosLosDatos } from '../ui/contexto';
 
@@ -63,7 +64,7 @@ export function Presupuesto({ d }: { d: TodosLosDatos }) {
                 <div className="fila">
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="fuerte">{c.nombre}{!c.activa && <span className="sec chico"> · oculta</span>}</div>
-                    <div className="sec chico">{MODOS[c.modo]}{c.modo === 'mensual' && ` · ${rd(presupuestoMensualDe(c))} al mes`}{c.clave === 'dieta' && ' · se recalcula con Compras'}</div>
+                    <div className="sec chico">{MODOS[c.modo]}{c.modo === 'mensual' && ` · ${rd(presupuestoMensualDe(c))} al mes`}{c.bloque && ` · ${NOMBRE_BLOQUE[c.bloque]}`}{c.fijo && ' · fijo'}{c.clave === 'dieta' && ' · se recalcula con Compras'}{c.clave === 'servicios' && ' · suma de tus suscripciones'}</div>
                   </div>
                   <div style={{ width: 118 }}>
                     {calendario
@@ -126,7 +127,9 @@ function FormCategoria({ c, orden, onCerrar }: { c?: Categoria; orden: number; o
   const [nombre, setNombre] = useState(c?.nombre ?? '');
   const [modo, setModo] = useState<Categoria['modo']>(c?.modo ?? 'quincenal');
   const [monto, setMonto] = useState<number | ''>(c ? (c.modo === 'mensual' ? presupuestoMensualDe(c) : c.presupuestoQuincenal) : '');
-  const fija = !!c?.clave && ['transporte', 'dieta'].includes(c.clave);
+  const [bloque, setBloque] = useState<Bloque>(c?.bloque ?? (c?.tipo === 'ahorro' ? 'ahorro' : 'estilo'));
+  const [esFijo, setEsFijo] = useState(!!c?.fijo);
+  const fija = !!c?.clave && ['transporte', 'dieta', 'servicios'].includes(c.clave);
   return (
     <Dialogo titulo={c ? 'Editar categoría' : 'Nueva categoría'} onCerrar={onCerrar} acciones={<>
       <button className="btn" onClick={onCerrar}>Cancelar</button>
@@ -134,7 +137,7 @@ function FormCategoria({ c, orden, onCerrar }: { c?: Categoria; orden: number; o
         const m = Number(monto || 0);
         const base: Categoria = c ?? { id: nuevoId(), nombre: '', tipo: 'gasto', modo, presupuestoQuincenal: 0, orden, activa: true };
         await db.categorias.put({
-          ...base, nombre: nombre.trim(), modo: fija ? base.modo : modo,
+          ...base, nombre: nombre.trim(), modo: fija ? base.modo : modo, bloque, fijo: base.tipo === 'ahorro' ? undefined : esFijo,
           ...(fija ? {} : modo === 'mensual' ? { presupuestoMensual: m, presupuestoQuincenal: m / 2 } : { presupuestoQuincenal: m, presupuestoMensual: m * 2 }),
         });
         onCerrar();
@@ -142,6 +145,16 @@ function FormCategoria({ c, orden, onCerrar }: { c?: Categoria; orden: number; o
     </>}>
       <div className="pila">
         <label className="campo"><span>Nombre</span><input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={40} autoFocus /></label>
+        {c?.tipo !== 'ahorro' && <>
+          <label className="campo"><span>Bloque del reparto</span>
+            <select value={bloque} onChange={(e) => setBloque(e.target.value as Bloque)}>
+              <option value="necesidades">{NOMBRE_BLOQUE.necesidades}</option>
+              <option value="estilo">{NOMBRE_BLOQUE.estilo}</option>
+              <option value="ahorro">{NOMBRE_BLOQUE.ahorro}</option>
+            </select>
+          </label>
+          <label className="check"><input type="checkbox" checked={esFijo} onChange={(e) => setEsFijo(e.target.checked)} /> <span>Gasto fijo comprometido <span className="sec chico">(se descuenta completo del dinero libre)</span></span></label>
+        </>}
         {!fija && <>
           <label className="campo"><span>Modo de presupuesto</span>
             <select value={modo} onChange={(e) => setModo(e.target.value as Categoria['modo'])}>

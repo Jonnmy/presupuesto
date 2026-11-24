@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { sembrar } from './db/db';
 import { aplicarRecurrentes } from './db/acciones';
+import './fuentes.css';
 import './estilos.css';
 
 registerSW({ immediate: true });

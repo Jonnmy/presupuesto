@@ -3,8 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// En GitHub Pages la app vive en /presupuesto/
-const base = process.env.BASE_PATH ?? '/presupuesto/';
+// Rutas relativas (./): la app funciona en /presupuesto/ de GitHub Pages o en cualquier otra carpeta.
+const base = './';
 
 export default defineConfig({
   base,
@@ -18,12 +18,12 @@ export default defineConfig({
         short_name: 'Quincena',
         description: 'Control de gastos y ahorros por quincena',
         lang: 'es-DO',
-        theme_color: '#0f766e',
-        background_color: '#f7f7f5',
+        theme_color: '#0b0f17',
+        background_color: '#0b0f17',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: base,
-        scope: base,
+        start_url: './',
+        scope: './',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -32,7 +32,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,woff2}'],
         navigateFallback: 'index.html',
       },
     }),

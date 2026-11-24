@@ -26,18 +26,20 @@ export function useDatos(): TodosLosDatos | undefined {
   });
 }
 
+export type TipoMovimiento = 'gasto' | 'ingreso';
+
 // ---- Avisos (toast con deshacer) ----
 
 interface Aviso { texto: string; accion?: { etiqueta: string; fn: () => void } }
 interface Ui {
   avisar: (texto: string, accion?: Aviso['accion']) => void;
-  abrirGasto: (g?: Gasto) => void;
+  abrirGasto: (g?: Gasto, tipo?: TipoMovimiento) => void;
 }
 
 const UiCtx = createContext<Ui>({ avisar: () => {}, abrirGasto: () => {} });
 export const useUi = () => useContext(UiCtx);
 
-export function ProveedorUi({ children, abrirGasto }: { children: ReactNode; abrirGasto: (g?: Gasto) => void }) {
+export function ProveedorUi({ children, abrirGasto }: { children: ReactNode; abrirGasto: (g?: Gasto, tipo?: TipoMovimiento) => void }) {
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const t = useRef<number | undefined>(undefined);
   const avisar = useCallback((texto: string, accion?: Aviso['accion']) => {

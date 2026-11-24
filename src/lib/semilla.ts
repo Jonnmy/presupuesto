@@ -6,6 +6,7 @@ export const ID = {
   gimnasio: 'cat-gimnasio',
   transporte: 'cat-transporte',
   personal: 'cat-personal',
+  servicios: 'cat-servicios',
   ahorro: 'cat-ahorro',
   recPasaje: 'rec-pasaje',
   recGimnasio: 'rec-gimnasio',
@@ -15,6 +16,20 @@ export const ID = {
 export const RETIRADOS = {
   categorias: ['cat-suplementos', 'cat-ropa', 'cat-otros'],
   recurrentes: ['rec-whey', 'rec-creatina'],
+};
+
+export const BLOQUES_INICIALES = { necesidades: 50, estilo: 30, ahorro: 20 } as const;
+
+/** Servicios y suscripciones: su presupuesto es la suma de los recurrentes de esa categoría. */
+export const SERVICIOS_INICIAL: Categoria = {
+  id: 'cat-servicios', clave: 'servicios', nombre: 'Servicios y suscripciones', tipo: 'gasto', modo: 'mensual',
+  presupuestoQuincenal: 0, presupuestoMensual: 0, orden: 6, activa: true, bloque: 'necesidades', fijo: true,
+};
+
+/** Bloque y si es fijo, por clave, para datos de versiones anteriores. */
+export const BLOQUE_POR_CLAVE: Partial<Record<string, { bloque: 'necesidades' | 'estilo' | 'ahorro'; fijo?: boolean }>> = {
+  dieta: { bloque: 'necesidades' }, transporte: { bloque: 'necesidades' }, servicios: { bloque: 'necesidades', fijo: true },
+  gimnasio: { bloque: 'estilo', fijo: true }, personal: { bloque: 'estilo' }, ahorro: { bloque: 'ahorro' },
 };
 
 export function ajustesIniciales(ahoraISO: string): Ajustes {
@@ -28,19 +43,21 @@ export function ajustesIniciales(ahoraISO: string): Ajustes {
     diasLaborables: [1, 2, 3, 4, 5, 6],
     transporteModo: 'calendario',
     transporteFijoQuincena: 3640,
-    tema: 'sistema',
+    tema: 'oscuro',
     creadoEn: ahoraISO,
     cierresVistos: [],
+    bloques: { ...BLOQUES_INICIALES },
   };
 }
 
 export function categoriasIniciales(): Categoria[] {
   return [
-    { id: ID.dieta, clave: 'dieta', nombre: 'Dieta (Sirena)', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 4639, presupuestoMensual: 8845, orden: 1, activa: true },
-    { id: ID.gimnasio, clave: 'gimnasio', nombre: 'Gimnasio', tipo: 'gasto', modo: 'mensual', presupuestoQuincenal: 1400, presupuestoMensual: 2800, orden: 3, activa: true },
-    { id: ID.transporte, clave: 'transporte', nombre: 'Transporte', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3640, presupuestoMensual: 7280, orden: 4, activa: true },
-    { id: ID.personal, clave: 'personal', nombre: 'Gastos personales', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3500, presupuestoMensual: 7000, orden: 5, activa: true },
-    { id: ID.ahorro, clave: 'ahorro', nombre: 'Ahorro', tipo: 'ahorro', modo: 'quincenal', presupuestoQuincenal: 8821, presupuestoMensual: 17642, orden: 8, activa: true },
+    { id: ID.dieta, clave: 'dieta', nombre: 'Dieta (Sirena)', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 4639, presupuestoMensual: 8845, orden: 1, activa: true, bloque: 'necesidades' },
+    { id: ID.gimnasio, clave: 'gimnasio', nombre: 'Gimnasio', tipo: 'gasto', modo: 'mensual', presupuestoQuincenal: 1400, presupuestoMensual: 2800, orden: 3, activa: true, bloque: 'estilo', fijo: true },
+    { id: ID.transporte, clave: 'transporte', nombre: 'Transporte', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3640, presupuestoMensual: 7280, orden: 4, activa: true, bloque: 'necesidades' },
+    { id: ID.personal, clave: 'personal', nombre: 'Gastos personales', tipo: 'gasto', modo: 'quincenal', presupuestoQuincenal: 3500, presupuestoMensual: 7000, orden: 5, activa: true, bloque: 'estilo' },
+    SERVICIOS_INICIAL,
+    { id: ID.ahorro, clave: 'ahorro', nombre: 'Ahorro', tipo: 'ahorro', modo: 'quincenal', presupuestoQuincenal: 8821, presupuestoMensual: 17642, orden: 8, activa: true, bloque: 'ahorro' },
   ];
 }
 

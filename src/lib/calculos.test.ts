@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ahorroAcumulado, costoCompraSirena, estadoCategoria, estimadoMeta, fechasRecurrente, gastado, laborablesEnQuincena,
   metaAhorro, presupuestoTransporte, proyeccionAhorro, recurrentesPendientes, totalPresupuestado, vistaMes, vistaQuincena,
-  disponible, sobrante, ingresoQuincena,
+  disponible, sobrante, ingresoQuincena, libreParaGastar, vistaBloques, gastoPorMetodo, mensualEquivalente, gastoDiario, comparativaQuincenas,
 } from './calculos';
 import { quincenaDe, hoy, formatoFecha, formatoQuincena, diaSemana } from './fechas';
 import { rd, leerMonto } from './formato';
@@ -156,5 +156,72 @@ describe('Otros cálculos', () => {
     expect(diaSemana('2026-11-22')).toBe(0);
     // 23:30 del 21 nov en Santo Domingo = 03:30 UTC del 22
     expect(hoy(new Date('2026-11-22T03:30:00Z'))).toBe('2026-11-21');
+  });
+});
+
+describe('Rediseño: libre para gastar, ritmo, bloques y métodos', () => {
+  it('libre para gastar = presupuesto variable cuando no hay gastos (16–30 nov)', () => {
+    const l = libreParaGastar(Q2_NOV, datos(), '2026-11-16');
+    expect(l.fijos).toBe(1400); // gimnasio (servicios en 0)
+    expect(l.meta).toBe(8821);
+    expect(l.presupuestoVariable).toBe(4639 + 3640 + 3500);
+    expect(l.libre).toBe(11779);
+    expect(l.diasRestantes).toBe(15);
+    expect(l.diaActual).toBe(1);
+  });
+
+  it('gastos variables bajan el libre; pagar el gimnasio completo sube los fijos', () => {
+    const d = datos({ gastos: [gasto('2026-11-17', 1000, ID.dieta), gasto('2026-11-17', 2800, ID.gimnasio)] });
+    const l = libreParaGastar(Q2_NOV, d, '2026-11-20');
+    expect(l.gastadoVariable).toBe(1000);
+    expect(l.fijos).toBe(2800);
+    expect(l.libre).toBe(22000 - 2800 - 8821 - 1000);
+    expect(l.diasRestantes).toBe(11); // 20 al 30
+    expect(l.diario).toBeCloseTo(l.libre / 11);
+  });
+
+  it('ritmo: alerta cuando se gasta más rápido que el ideal, excedido cuando el libre es negativo', () => {
+    const rapido = datos({ gastos: [gasto('2026-11-16', 6000, ID.personal)] });
+    const l = libreParaGastar(Q2_NOV, rapido, '2026-11-17');
+    expect(l.ritmo).toBe('alerta');
+    expect(l.margen).toBeLessThan(0);
+    const sobregiro = datos({ gastos: [gasto('2026-11-16', 15000, ID.personal)] });
+    expect(libreParaGastar(Q2_NOV, sobregiro, '2026-11-17').ritmo).toBe('excedido');
+    expect(libreParaGastar(Q2_NOV, datos(), '2026-11-25').ritmo).toBe('ok');
+  });
+
+  it('bloques 50/30/20 sobre el ingreso', () => {
+    const d = datos({
+      gastos: [gasto('2026-11-20', 4000, ID.dieta), gasto('2026-11-20', 2800, ID.gimnasio), gasto('2026-11-21', 500, ID.personal)],
+      depositos: [{ id: 'x', fecha: '2026-11-30', monto: 3000 }],
+    });
+    const [n, e, a] = vistaBloques(Q2_NOV, 22000, d);
+    expect(n).toMatchObject({ bloque: 'necesidades', limite: 11000, usado: 4000, estado: 'ok' });
+    expect(e).toMatchObject({ bloque: 'estilo', limite: 6600, usado: 3300, estado: 'ok' });
+    expect(a).toMatchObject({ bloque: 'ahorro', limite: 4400, usado: 3000 });
+  });
+
+  it('gasto por método de pago', () => {
+    const d = datos({ gastos: [
+      gasto('2026-11-20', 100, ID.dieta, { metodo: 'tarjeta' }), gasto('2026-11-20', 50, ID.dieta, { metodo: 'efectivo' }),
+      gasto('2026-11-20', 30, ID.dieta), gasto('2026-11-20', 20, ID.dieta, { metodo: 'transferencia' }),
+    ] });
+    expect(gastoPorMetodo(Q2_NOV, d)).toEqual({ tarjeta: 100, efectivo: 80, transferencia: 20 });
+  });
+
+  it('recurrente quincenal cae en las dos quincenas y suma el doble al mes', () => {
+    const r = { id: 'r', nombre: 'Internet', categoriaId: 'cat-servicios', monto: 900, frecuencia: 'quincenal' as const, diaDelMes: 5, automatico: true, activo: true };
+    expect(fechasRecurrente(r, '2026-11-01', '2026-12-31', ajustesIniciales(''), [])).toEqual(['2026-11-05', '2026-11-20', '2026-12-05', '2026-12-20']);
+    expect(mensualEquivalente(r)).toBe(1800);
+    expect(mensualEquivalente({ ...r, frecuencia: 'cada-n-meses', cadaNMeses: 3 })).toBe(300);
+  });
+
+  it('gasto diario y comparativa', () => {
+    const d = datos({ gastos: [gasto('2026-11-16', 100, ID.dieta), gasto('2026-11-16', 50, ID.dieta), gasto('2026-11-18', 70, ID.personal)] });
+    const serie = gastoDiario(Q2_NOV, d);
+    expect(serie).toHaveLength(15);
+    expect(serie[0]).toEqual({ fecha: '2026-11-16', monto: 150 });
+    expect(serie[2].monto).toBe(70);
+    expect(comparativaQuincenas([Q2_NOV], d)[0]).toMatchObject({ ingreso: 22000, gastado: 220, ahorrado: 0 });
   });
 });

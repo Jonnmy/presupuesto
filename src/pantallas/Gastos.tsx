@@ -9,7 +9,7 @@ import { CampoMonto, Confirmar, Dialogo, Vacio } from '../ui/comunes';
 import { useUi, type TodosLosDatos } from '../ui/contexto';
 import { SelectorPeriodo, periodoActual, type Periodo } from '../ui/Selector';
 
-const METODO: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
+const METODO: Record<string, string> = { efectivo: 'Efectivo/débito', tarjeta: 'Tarjeta de crédito', transferencia: 'Transferencia' };
 
 export function Gastos({ d }: { d: TodosLosDatos }) {
   const { avisar, abrirGasto } = useUi();
@@ -17,6 +17,7 @@ export function Gastos({ d }: { d: TodosLosDatos }) {
   const [periodo, setPeriodo] = useState<Periodo>(() => periodoActual(corte));
   const [filtro, setFiltro] = useState<string>('');
   const [busqueda, setBusqueda] = useState('');
+  const [metodo, setMetodo] = useState<string>('');
   const [confirmarPasaje, setConfirmarPasaje] = useState(false);
   const [ingreso, setIngreso] = useState<Ingreso | 'nuevo' | null>(null);
 
@@ -28,6 +29,7 @@ export function Gastos({ d }: { d: TodosLosDatos }) {
   const lista = d.gastos
     .filter((g) => enRango(g.fecha, r))
     .filter((g) => !filtro || g.categoriaId === filtro)
+    .filter((g) => !metodo || (g.metodo ?? 'efectivo') === metodo)
     .filter((g) => !busqueda.trim() || (g.nota ?? '').toLowerCase().includes(busqueda.trim().toLowerCase()))
     .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creadoEn.localeCompare(a.creadoEn));
   const porDia = new Map<string, typeof lista>();
@@ -103,9 +105,16 @@ export function Gastos({ d }: { d: TodosLosDatos }) {
           ))}
         </div>
 
+        <div className="chips" role="group" aria-label="Filtrar por método de pago" style={{ marginBottom: 4 }}>
+          <button className="chip" aria-pressed={metodo === ''} onClick={() => setMetodo('')}>Todos los métodos</button>
+          {Object.entries(METODO).map(([v, t]) => (
+            <button key={v} className="chip" aria-pressed={metodo === v} onClick={() => setMetodo(metodo === v ? '' : v)}>{t}</button>
+          ))}
+        </div>
+
         {lista.length === 0 ? (
-          <Vacio titulo={filtro || busqueda ? 'Nada coincide con el filtro' : 'Sin gastos en este periodo'}>
-            {!filtro && !busqueda && <p>Toca <strong>+ Gasto</strong> para registrar el primero. Aparecerán aquí agrupados por día.</p>}
+          <Vacio titulo={filtro || metodo || busqueda ? 'Nada coincide con el filtro' : 'Sin gastos en este periodo'}>
+            {!filtro && !metodo && !busqueda && <p>Toca <strong>+ Gasto</strong> para registrar el primero. Aparecerán aquí agrupados por día.</p>}
           </Vacio>
         ) : (
           [...porDia.entries()].map(([fecha, gs]) => (

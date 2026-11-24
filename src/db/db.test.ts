@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import Dexie from 'dexie';
 import { BaseDatos, sembrar } from './db';
-import { agregarGasto, guardarProducto, marcarCompraHecha, registrarPasaje } from './acciones';
+import { agregarGasto, guardarProducto, marcarCompraHecha, recalcularServicios, registrarPasaje } from './acciones';
+import { cargarDemo, quitarDemo } from './demo';
 import { borrarTodo, exportarDatos, gastosACsv, importarDatos } from './respaldo';
 import { CANTIDADES_V5, catalogoInicial, categoriasIniciales, ID } from '../lib/semilla';
 
@@ -16,7 +17,7 @@ beforeEach(async () => {
 
 describe('Base de datos', () => {
   it('siembra sin gastos, ingresos ni depósitos', async () => {
-    expect(await base.categorias.count()).toBe(5);
+    expect(await base.categorias.count()).toBe(6);
     expect(await base.productos.count()).toBe(25);
     expect(await base.recurrentes.count()).toBe(2);
     expect(await base.metas.count()).toBe(1);
@@ -24,7 +25,7 @@ describe('Base de datos', () => {
     expect(await base.ingresos.count()).toBe(0);
     expect(await base.depositos.count()).toBe(0);
     await sembrar(base); // idempotente
-    expect(await base.categorias.count()).toBe(5);
+    expect(await base.categorias.count()).toBe(6);
   });
 
   it('migración v1 → v2: quita Suplementos, Ropa y Otros y pasa sus gastos a Gastos personales', async () => {
@@ -83,6 +84,22 @@ describe('Base de datos', () => {
     expect(dieta?.presupuestoMensual).toBe(8845);
   });
 
+  it('migración a v6: bloques, fijos, servicios y tema oscuro', async () => {
+    const nombre = `migracion-${++n}`;
+    const v1 = new Dexie(nombre);
+    v1.version(1).stores({ ajustes: 'id', categorias: 'id, orden', gastos: 'id, fecha, categoriaId, recurrenteId', ingresos: 'id, fecha', recurrentes: 'id', diasLibres: 'fecha', productos: 'id, orden', compras: 'id, fecha', metas: 'id', depositos: 'id, fecha', planificados: 'id, fecha' });
+    await v1.table('ajustes').add({ id: 'ajustes', tema: 'sistema', pasajeDiario: 280 });
+    await v1.table('categorias').bulkAdd([{ id: ID.gimnasio, clave: 'gimnasio', tipo: 'gasto', orden: 3 }, { id: ID.dieta, clave: 'dieta', tipo: 'gasto', orden: 1 }]);
+    v1.close();
+    const v6 = new BaseDatos(nombre);
+    const a = await v6.ajustes.get('ajustes');
+    expect(a?.tema).toBe('oscuro');
+    expect(a?.bloques).toEqual({ necesidades: 50, estilo: 30, ahorro: 20 });
+    expect(await v6.categorias.get(ID.gimnasio)).toMatchObject({ bloque: 'estilo', fijo: true });
+    expect(await v6.categorias.get(ID.dieta)).toMatchObject({ bloque: 'necesidades' });
+    expect(await v6.categorias.get('cat-servicios')).toMatchObject({ nombre: 'Servicios y suscripciones', fijo: true });
+  });
+
   it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 280', async () => {
     expect(await registrarPasaje('2026-11-23', base)).toBe('creado');
     expect(await registrarPasaje('2026-11-23', base)).toBe('duplicado');
@@ -130,5 +147,29 @@ describe('Base de datos', () => {
     await agregarGasto({ fecha: '2026-11-20', monto: 450, categoriaId: ID.personal, nota: 'a, b', origen: 'manual' }, base);
     const csv = gastosACsv(await base.gastos.toArray(), await base.categorias.toArray());
     expect(csv.split('\r\n')[1]).toBe('2026-11-20,450,Gastos personales,"a, b",,manual');
+  });
+
+  it('la demostración se carga y se quita sin tocar datos reales', async () => {
+    const real = await agregarGasto({ fecha: '2026-11-20', monto: 500, categoriaId: ID.personal, origen: 'manual' }, base);
+    const n = await cargarDemo('2026-11-22', 15, base);
+    expect(n).toBeGreaterThan(20);
+    expect(await base.gastos.count()).toBe(n + 1);
+    expect(await base.ingresos.count()).toBe(1);
+    await quitarDemo(base);
+    expect((await base.gastos.toArray()).map((g) => g.id)).toEqual([real.id]);
+    expect(await base.ingresos.count()).toBe(0);
+    expect(await base.depositos.count()).toBe(0);
+  });
+
+  it('Servicios y suscripciones presupuesta la suma de sus fijos', async () => {
+    const r = { categoriaId: 'cat-servicios', automatico: false, activo: true, diaDelMes: 5 };
+    await base.recurrentes.bulkAdd([
+      { ...r, id: 'i', nombre: 'Internet', monto: 1150, frecuencia: 'mensual' },
+      { ...r, id: 'c', nombre: 'Celular', monto: 400, frecuencia: 'quincenal' },
+      { ...r, id: 'x', nombre: 'Viejo', monto: 999, frecuencia: 'mensual', activo: false },
+    ]);
+    expect(await recalcularServicios(base)).toBe(1950);
+    const c = await base.categorias.get('cat-servicios');
+    expect([c?.presupuestoMensual, c?.presupuestoQuincenal]).toEqual([1950, 975]);
   });
 });

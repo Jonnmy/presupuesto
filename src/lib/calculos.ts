@@ -3,7 +3,7 @@ import {
   aFecha, diaSemana, diasDelMes, diasEntre, mesSiguiente, partes, quincenaDe, quincenasDelMes, rango, rangoMes,
 } from './fechas';
 import type {
-  Ajustes, Categoria, Datos, DepositoAhorro, DiaLibre, Gasto, Mes, ProductoSirena, Quincena, Recurrente,
+  Ajustes, Bloque, Categoria, Datos, DepositoAhorro, DiaLibre, Gasto, Mes, Metodo, ProductoSirena, Quincena, Recurrente,
 } from './tipos';
 
 export interface Rango { inicio: string; fin: string }
@@ -245,6 +245,19 @@ export function fechasRecurrente(r: Recurrente, desde: string, hasta: string, aj
     for (const f of rango(desde, hasta)) if (esLaborable(f, ajustes.diasLaborables, libres)) out.push(f);
     return out;
   }
+  if (r.frecuencia === 'quincenal') {
+    const corte = ajustes.diaPago1 ?? 15;
+    const [a0, m0] = partes(desde);
+    for (let mes: Mes = { anio: a0, mes: m0 }; aFecha(mes.anio, mes.mes, 1) <= hasta; mes = mesSiguiente(mes)) {
+      const ultimo = diasDelMes(mes.anio, mes.mes);
+      const d = Math.min(Math.max(1, r.diaDelMes ?? 1), corte);
+      for (const dia of [d, Math.min(corte + d, ultimo)]) {
+        const f = aFecha(mes.anio, mes.mes, dia);
+        if (f >= desde && f <= hasta && !out.includes(f)) out.push(f);
+      }
+    }
+    return out;
+  }
   const paso = r.frecuencia === 'mensual' ? 1 : Math.max(1, r.cadaNMeses ?? 1);
   const [a, m] = partes(desde);
   for (let mes: Mes = { anio: a, mes: m }; aFecha(mes.anio, mes.mes, 1) <= hasta; ) {
@@ -270,3 +283,102 @@ export function recurrentesPendientes(recs: Recurrente[], gastos: Gasto[], hoyFe
 }
 
 export { quincenaDe };
+
+/** Equivalente mensual de un recurrente (para el panel de suscripciones). */
+export function mensualEquivalente(r: Recurrente): number {
+  if (r.frecuencia === 'quincenal') return r.monto * 2;
+  if (r.frecuencia === 'mensual') return r.monto;
+  if (r.frecuencia === 'cada-n-meses') return r.monto / Math.max(1, r.cadaNMeses ?? 1);
+  return 0; // diario: depende del calendario
+}
+
+// ---------- Libre para gastar y ritmo diario ----------
+
+export interface Libre {
+  ingreso: number;
+  /** Fijos comprometidos: por categoría fija, lo mayor entre su presupuesto y lo ya pagado. */
+  fijos: number;
+  meta: number;
+  planificados: number;
+  presupuestoVariable: number;
+  gastadoVariable: number;
+  /** Ingreso − fijos − meta de ahorro − únicos − variables gastados. */
+  libre: number;
+  diasTotales: number;
+  diaActual: number; // 1..diasTotales (0 si la quincena no ha empezado)
+  diasRestantes: number; // incluye hoy
+  diario: number;
+  /** Lo que "debería" llevar gastado en variables al terminar hoy, a ritmo parejo. */
+  ideal: number;
+  /** ideal − gastado: positivo = por debajo del límite. */
+  margen: number;
+  ritmo: 'ok' | 'alerta' | 'excedido';
+}
+
+export function libreParaGastar(q: Quincena, d: Datos, hoyFecha: string): Libre {
+  const ingreso = ingresoQuincena(q, d);
+  const cats = categoriasDeGasto(d.categorias);
+  const fijas = cats.filter((c) => c.fijo);
+  const variables = cats.filter((c) => !c.fijo);
+  const fijos = suma(fijas.map((c) => Math.max(presupuestoCategoria(c, q, d.ajustes, d.diasLibres), gastado(q, d, c.id))));
+  const meta = metaAhorro(q, d);
+  const planificados = gastosUnicosPlanificados(q, d);
+  const presupuestoVariable = suma(variables.map((c) => presupuestoCategoria(c, q, d.ajustes, d.diasLibres)));
+  const idsFijos = new Set(fijas.map((c) => c.id));
+  const gastadoVariable = suma(gastosEn(q, d.gastos).filter((g) => !idsFijos.has(g.categoriaId)).map((g) => g.monto));
+  const libre = ingreso - fijos - meta - planificados - gastadoVariable;
+
+  // Si la app se instaló a mitad de quincena, el ritmo cuenta desde la instalación (o desde el primer gasto, si es anterior).
+  const primerGasto = gastosEn(q, d.gastos).reduce<string | undefined>((m, g) => (!m || g.fecha < m ? g.fecha : m), undefined);
+  let desde = d.ajustes.creadoEn && d.ajustes.creadoEn.slice(0, 10) > q.inicio && d.ajustes.creadoEn.slice(0, 10) <= q.fin ? d.ajustes.creadoEn.slice(0, 10) : q.inicio;
+  if (primerGasto && primerGasto < desde) desde = primerGasto;
+  const diasTotales = diasEntre(desde, q.fin) + 1;
+  let diaActual: number;
+  if (hoyFecha < desde) diaActual = 0;
+  else if (hoyFecha > q.fin) diaActual = diasTotales;
+  else diaActual = diasEntre(desde, hoyFecha) + 1;
+  const diasRestantes = Math.max(0, diasTotales - diaActual + (diaActual > 0 && hoyFecha <= q.fin ? 1 : 0));
+  const diario = diasRestantes > 0 ? libre / diasRestantes : 0;
+  const ideal = presupuestoVariable * (diaActual / diasTotales);
+  const margen = ideal - gastadoVariable;
+  const ritmo: Libre['ritmo'] = libre < 0 ? 'excedido' : gastadoVariable > ideal ? 'alerta' : 'ok';
+  return { ingreso, fijos, meta, planificados, presupuestoVariable, gastadoVariable, libre, diasTotales, diaActual, diasRestantes, diario, ideal, margen, ritmo };
+}
+
+// ---------- Bloques 50/30/20 ----------
+
+export interface FilaBloque { bloque: Bloque; porcentaje: number; limite: number; usado: number; estado: Estado }
+
+export function vistaBloques(r: Rango, ingreso: number, d: Datos): FilaBloque[] {
+  const porCat = new Map(d.categorias.map((c) => [c.id, c.bloque ?? (c.tipo === 'ahorro' ? 'ahorro' : 'estilo')]));
+  const orden: Bloque[] = ['necesidades', 'estilo', 'ahorro'];
+  return orden.map((bloque) => {
+    const porcentaje = d.ajustes.bloques?.[bloque] ?? 0;
+    const limite = (ingreso * porcentaje) / 100;
+    const usado = bloque === 'ahorro'
+      ? ahorrado(r, d) + suma(gastosEn(r, d.gastos).filter((g) => porCat.get(g.categoriaId) === 'ahorro').map((g) => g.monto))
+      : suma(gastosEn(r, d.gastos).filter((g) => (porCat.get(g.categoriaId) ?? 'estilo') === bloque).map((g) => g.monto));
+    // En ahorro, llegar al límite es lo deseado: el estado es siempre 'ok'.
+    return { bloque, porcentaje, limite, usado, estado: bloque === 'ahorro' ? 'ok' : estadoCategoria(usado, limite) };
+  });
+}
+
+// ---------- Métodos de pago ----------
+
+export function gastoPorMetodo(r: Rango, d: Pick<Datos, 'gastos'>): Record<Metodo, number> {
+  const out: Record<Metodo, number> = { efectivo: 0, transferencia: 0, tarjeta: 0 };
+  for (const g of gastosEn(r, d.gastos)) out[g.metodo ?? 'efectivo'] += g.monto;
+  return out;
+}
+
+// ---------- Series para gráficos ----------
+
+export function gastoDiario(r: Rango, d: Pick<Datos, 'gastos'>): { fecha: string; monto: number }[] {
+  const porDia = new Map<string, number>();
+  for (const g of gastosEn(r, d.gastos)) porDia.set(g.fecha, (porDia.get(g.fecha) ?? 0) + g.monto);
+  return [...rango(r.inicio, r.fin)].map((fecha) => ({ fecha, monto: porDia.get(fecha) ?? 0 }));
+}
+
+export function comparativaQuincenas(qs: Quincena[], d: Datos) {
+  return qs.map((q) => ({ q, ingreso: ingresoQuincena(q, d), gastado: gastado(q, d), ahorrado: ahorrado(q, d) }));
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { db } from './db/db';
 import type { Gasto } from './lib/tipos';
-import { ProveedorUi, useDatos } from './ui/contexto';
+import { ProveedorUi, useDatos, type TipoMovimiento } from './ui/contexto';
 import { FormGasto } from './ui/FormGasto';
 import { Resumen } from './pantallas/Resumen';
 import { Gastos } from './pantallas/Gastos';
@@ -29,8 +30,8 @@ const NOMBRES: Record<Exclude<Ruta, 'presupuesto'>, string> = { resumen: 'Resume
 export default function App() {
   const d = useDatos();
   const [ruta, setRuta] = useState<Ruta>(leerRuta);
-  const [form, setForm] = useState<{ gasto?: Gasto } | null>(null);
-  const abrirGasto = useCallback((g?: Gasto) => setForm({ gasto: g }), []);
+  const [form, setForm] = useState<{ gasto?: Gasto; tipo?: TipoMovimiento } | null>(null);
+  const abrirGasto = useCallback((g?: Gasto, tipo?: TipoMovimiento) => setForm({ gasto: g, tipo }), []);
 
   useEffect(() => {
     const f = () => { setRuta(leerRuta()); window.scrollTo(0, 0); };
@@ -38,18 +39,33 @@ export default function App() {
     return () => window.removeEventListener('hashchange', f);
   }, []);
 
-  const tema = d?.ajustes.tema ?? 'sistema';
+  // Atajo de teclado: N abre "Nuevo gasto" (salvo que se esté escribiendo o haya un diálogo abierto).
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'n' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      setForm({ tipo: 'gasto' });
+    };
+    window.addEventListener('keydown', f);
+    return () => window.removeEventListener('keydown', f);
+  }, []);
+
+  const tema = d?.ajustes.tema ?? 'oscuro';
+  const [sistemaOscuro, setSistemaOscuro] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const aplicar = () => {
-      const oscuro = tema === 'oscuro' || (tema === 'sistema' && mq.matches);
-      document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', oscuro ? '#1b1e21' : '#0f766e');
-    };
-    aplicar();
-    mq.addEventListener('change', aplicar);
-    return () => mq.removeEventListener('change', aplicar);
-  }, [tema]);
+    const f = () => setSistemaOscuro(mq.matches);
+    mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, []);
+  const oscuro = tema === 'oscuro' || (tema === 'sistema' && sistemaOscuro);
+  useEffect(() => {
+    document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', oscuro ? '#0b0f17' : '#f8fafc');
+  }, [oscuro]);
 
   if (!d) return <div className="app"><p className="sec" role="status">Cargando…</p></div>;
 
@@ -57,6 +73,16 @@ export default function App() {
   return (
     <ProveedorUi abrirGasto={abrirGasto}>
       <div className="app">
+        <header className="barra-sup">
+          <a className="marca" href="#/" style={{ color: 'inherit', textDecoration: 'none' }}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16l5-5 3.5 2.6L20 7" fill="none" stroke="var(--verde)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Quincena
+          </a>
+          <button className="btn plano chico" aria-label={oscuro ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+            onClick={() => db.ajustes.update('ajustes', { tema: oscuro ? 'claro' : 'oscuro' })}>
+            {oscuro ? '☀ Claro' : '☾ Oscuro'}
+          </button>
+        </header>
         {ruta === 'resumen' && <Resumen d={d} />}
         {ruta === 'gastos' && <Gastos d={d} />}
         {ruta === 'ahorro' && <Ahorro d={d} />}
@@ -64,7 +90,7 @@ export default function App() {
         {ruta === 'ajustes' && <Ajustes d={d} />}
         {ruta === 'presupuesto' && <Presupuesto d={d} />}
       </div>
-      <button className="fab" onClick={() => abrirGasto()} aria-label="Agregar gasto">+ Gasto</button>
+      <button className="fab" onClick={() => abrirGasto(undefined, 'gasto')} aria-label="Agregar gasto (atajo N)">+ Gasto <kbd aria-hidden="true">N</kbd></button>
       <nav className="nav" aria-label="Secciones">
         {(Object.keys(NOMBRES) as (keyof typeof NOMBRES)[]).map((r) => (
           <a key={r} href={`#/${r === 'resumen' ? '' : r}`} aria-current={activa === r ? 'page' : undefined}>
@@ -73,7 +99,7 @@ export default function App() {
           </a>
         ))}
       </nav>
-      {form && <FormGasto gasto={form.gasto} categorias={d.categorias} onCerrar={() => setForm(null)} />}
+      {form && <FormGasto gasto={form.gasto} tipo={form.tipo} categorias={d.categorias} corte={d.ajustes.diaPago1} onCerrar={() => setForm(null)} />}
     </ProveedorUi>
   );
 }

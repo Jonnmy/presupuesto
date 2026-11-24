@@ -14,10 +14,14 @@ export interface Ajustes {
   ultimoRespaldo?: string;
   creadoEn: string;
   cierresVistos: string[]; // claves de quincena cuyo aviso de cierre ya se atendió
+  /** Reparto del ingreso por bloques, en porcentaje (deben sumar 100). */
+  bloques: Record<Bloque, number>;
 }
 
+export type Bloque = 'necesidades' | 'estilo' | 'ahorro';
+
 /** Rol fijo de algunas categorías, para cálculos especiales. */
-export type ClaveCategoria = 'dieta' | 'suplementos' | 'gimnasio' | 'transporte' | 'personal' | 'ropa' | 'otros' | 'ahorro';
+export type ClaveCategoria = 'dieta' | 'suplementos' | 'gimnasio' | 'transporte' | 'personal' | 'ropa' | 'otros' | 'ahorro' | 'servicios';
 
 export interface Categoria {
   id: Id;
@@ -29,6 +33,10 @@ export interface Categoria {
   orden: number;
   activa: boolean;
   clave?: ClaveCategoria;
+  /** Bloque del reparto 50/30/20 al que pertenece. */
+  bloque?: Bloque;
+  /** Gasto fijo comprometido (membresías, servicios). Los demás son variables. */
+  fijo?: boolean;
 }
 
 export type Metodo = 'efectivo' | 'tarjeta' | 'transferencia';
@@ -40,7 +48,7 @@ export interface Gasto {
   categoriaId: Id;
   nota?: string;
   metodo?: Metodo;
-  origen: 'manual' | 'recurrente' | 'compra-sirena';
+  origen: 'manual' | 'recurrente' | 'compra-sirena' | 'demo';
   recurrenteId?: Id;
   creadoEn: string;
 }
@@ -50,6 +58,7 @@ export interface Ingreso {
   fecha: string;
   monto: number;
   nota?: string;
+  demo?: boolean;
 }
 
 export interface Recurrente {
@@ -57,7 +66,8 @@ export interface Recurrente {
   nombre: string;
   categoriaId: Id;
   monto: number;
-  frecuencia: 'diaria-laboral' | 'mensual' | 'cada-n-meses';
+  /** quincenal: el día `diaDelMes` de la 1ª quincena y el mismo día contado desde el corte en la 2ª. */
+  frecuencia: 'diaria-laboral' | 'quincenal' | 'mensual' | 'cada-n-meses';
   diaDelMes?: number;
   cadaNMeses?: number;
   automatico: boolean;
@@ -104,6 +114,7 @@ export interface DepositoAhorro {
   monto: number;
   metaId?: Id;
   nota?: string;
+  demo?: boolean;
 }
 
 /** Gasto único que se planifica para una fecha (p. ej., inscripción del gimnasio). Baja la meta de ahorro de su quincena. */

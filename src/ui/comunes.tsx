@@ -9,8 +9,11 @@ export function Dialogo({ titulo, onCerrar, children, acciones }: { titulo: stri
   cerrar.current = onCerrar;
   useEffect(() => {
     const previo = document.activeElement as HTMLElement | null;
-    const primero = ref.current?.querySelector<HTMLElement>('[autofocus], input, select, textarea, button');
-    primero?.focus();
+    // Prioriza el campo con autoFocus (o el primer campo) antes que el botón de cerrar.
+    const dentro = ref.current;
+    if (!dentro?.contains(document.activeElement) || document.activeElement === dentro.querySelector('button')) {
+      (dentro?.querySelector<HTMLElement>('input:not([type=checkbox]):not([type=date]), select, textarea') ?? dentro?.querySelector<HTMLElement>('button'))?.focus();
+    }
     const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') cerrar.current(); };
     document.addEventListener('keydown', tecla);
     document.body.style.overflow = 'hidden';
@@ -32,11 +35,11 @@ export function Dialogo({ titulo, onCerrar, children, acciones }: { titulo: stri
   );
 }
 
-export function Barra({ valor, maximo, estado, etiqueta }: { valor: number; maximo: number; estado: Estado; etiqueta: string }) {
+export function Barra({ valor, maximo, estado, etiqueta, clase }: { valor: number; maximo: number; estado: Estado; etiqueta: string; clase?: string }) {
   if (!(maximo > 0)) return null;
   const ancho = Math.min(100, (valor / maximo) * 100);
   return (
-    <div className={`barra ${estado}`} role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((valor / maximo) * 100)}>
+    <div className={`barra ${estado} ${clase ?? ""}`} role="progressbar" aria-label={etiqueta} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((valor / maximo) * 100)}>
       <span style={{ width: `${ancho}%` }} />
     </div>
   );

@@ -1,5 +1,5 @@
 import { db, type BaseDatos } from './db';
-import { costoCompraSirena, recurrentesPendientes, yaRegistrado, type GastoNuevo } from '../lib/calculos';
+import { costoCompraSirena, mensualEquivalente, recurrentesPendientes, yaRegistrado, type GastoNuevo } from '../lib/calculos';
 import { hoy } from '../lib/fechas';
 import { nuevoId } from '../lib/formato';
 import { ID } from '../lib/semilla';
@@ -72,4 +72,12 @@ async function recalcularDieta(base: BaseDatos) {
   const antes = dieta?.presupuestoQuincenal ?? 0;
   if (dieta) await base.categorias.put({ ...dieta, presupuestoQuincenal: despues, presupuestoMensual: costoCompraSirena(productos, 'mes') });
   return { antes, despues };
+}
+
+/** El presupuesto de "Servicios y suscripciones" es la suma de sus fijos activos (equivalente mensual). */
+export async function recalcularServicios(base: BaseDatos = db): Promise<number> {
+  const recs = await base.recurrentes.filter((r) => r.activo && r.categoriaId === 'cat-servicios').toArray();
+  const mensual = Math.round(recs.reduce((s, r) => s + mensualEquivalente(r), 0));
+  await base.categorias.update('cat-servicios', { presupuestoMensual: mensual, presupuestoQuincenal: Math.round(mensual / 2) });
+  return mensual;
 }
