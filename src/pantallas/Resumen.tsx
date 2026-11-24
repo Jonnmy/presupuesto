@@ -5,7 +5,7 @@ import {
   ahorrado, comparativaQuincenas, disponible, gastoDiario, gastoPorMetodo, libreParaGastar, mensualEquivalente, vistaBloques, vistaMes,
   vistaQuincena, type FilaCategoria, type Libre,
 } from '../lib/calculos';
-import { claveQuincena, diasEntre, formatoFecha, formatoQuincena, hoy, quincenaAnterior, quincenaDe } from '../lib/fechas';
+import { claveQuincena, diasEntre, fechaLocal, formatoFecha, formatoQuincena, hoy, quincenaAnterior, quincenaDe } from '../lib/fechas';
 import { nuevoId, pct, rd } from '../lib/formato';
 import type { Bloque, Quincena } from '../lib/tipos';
 import { Barra, CeldaNumero, Dialogo, EtiquetaEstado } from '../ui/comunes';
@@ -87,7 +87,7 @@ export function Resumen({ d }: { d: TodosLosDatos }) {
 
       <section className="tarjeta">
         <h2>Últimas quincenas: ingreso, gasto y ahorro</h2>
-        <Comparativa titulo="Comparativa de quincenas" datos={ultimasQuincenas(q, corte).filter((x, i, todas) => i === todas.length - 1 || x.fin >= d.ajustes.creadoEn.slice(0, 10) || comparativaQuincenas([x], d)[0].gastado > 0).map((x) => {
+        <Comparativa titulo="Comparativa de quincenas" datos={ultimasQuincenas(q, corte).filter((x, i, todas) => i === todas.length - 1 || x.fin >= fechaLocal(d.ajustes.creadoEn) || comparativaQuincenas([x], d)[0].gastado > 0).map((x) => {
           const c = comparativaQuincenas([x], d)[0];
           return { etiqueta: `${x.numero === 1 ? '1ª' : '2ª'} ${MESES[x.mes - 1]}`, ingreso: c.ingreso, gastado: c.gastado, ahorrado: c.ahorrado };
         })} />
@@ -295,7 +295,7 @@ export function AvisoCierre({ d }: { d: TodosLosDatos }) {
   const previa = quincenaAnterior(actual, d.ajustes.diaPago1);
   const clave = claveQuincena(previa);
   const resto = disponible(previa, d);
-  if (d.ajustes.cierresVistos.includes(clave) || resto <= 0 || previa.fin < d.ajustes.creadoEn.slice(0, 10)) return null;
+  if (d.ajustes.cierresVistos.includes(clave) || resto <= 0 || previa.fin < fechaLocal(d.ajustes.creadoEn)) return null;
   const marcar = () => db.ajustes.update('ajustes', { cierresVistos: [...d.ajustes.cierresVistos, clave] });
   return (
     <section className="tarjeta aviso" aria-label="Cierre de quincena">

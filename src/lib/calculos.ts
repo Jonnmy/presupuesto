@@ -1,6 +1,6 @@
 // Funciones puras de cálculo (sección 11 de la especificación).
 import {
-  aFecha, diaSemana, diasDelMes, diasEntre, mesSiguiente, partes, quincenaDe, quincenasDelMes, rango, rangoMes,
+  aFecha, diaSemana, fechaLocal, diasDelMes, diasEntre, mesSiguiente, partes, quincenaDe, quincenasDelMes, rango, rangoMes,
 } from './fechas';
 import type {
   Ajustes, Bloque, Categoria, Datos, DepositoAhorro, DiaLibre, Gasto, Mes, Metodo, ProductoSirena, Quincena, Recurrente,
@@ -109,7 +109,8 @@ export function proyeccionAhorro(q: Quincena, d: Datos, hoyFecha: string): numbe
   if (hoyFecha < q.inicio) return ingreso - Math.max(g, plan);
   if (hoyFecha > q.fin) return ingreso - g;
   // Si la app se empezó a usar a mitad de quincena, los días anteriores no cuentan (no hay gastos registrados de ellos).
-  const desde = d.ajustes.creadoEn && d.ajustes.creadoEn.slice(0, 10) > q.inicio ? d.ajustes.creadoEn.slice(0, 10) : q.inicio;
+  const creado = d.ajustes.creadoEn ? fechaLocal(d.ajustes.creadoEn) : '';
+  const desde = creado > q.inicio ? creado : q.inicio;
   const total = diasEntre(desde, q.fin) + 1;
   const pasados = Math.max(0, diasEntre(desde, hoyFecha)); // días completos ya transcurridos
   const restante = plan * ((total - pasados) / total);
@@ -330,7 +331,9 @@ export function libreParaGastar(q: Quincena, d: Datos, hoyFecha: string): Libre 
 
   // Si la app se instaló a mitad de quincena, el ritmo cuenta desde la instalación (o desde el primer gasto, si es anterior).
   const primerGasto = gastosEn(q, d.gastos).reduce<string | undefined>((m, g) => (!m || g.fecha < m ? g.fecha : m), undefined);
-  let desde = d.ajustes.creadoEn && d.ajustes.creadoEn.slice(0, 10) > q.inicio && d.ajustes.creadoEn.slice(0, 10) <= q.fin ? d.ajustes.creadoEn.slice(0, 10) : q.inicio;
+  const creado = d.ajustes.creadoEn ? fechaLocal(d.ajustes.creadoEn) : '';
+  let desde = creado > q.inicio && creado <= q.fin ? creado : q.inicio;
+  if (hoyFecha >= q.inicio && hoyFecha < desde) desde = hoyFecha;
   if (primerGasto && primerGasto < desde) desde = primerGasto;
   const diasTotales = diasEntre(desde, q.fin) + 1;
   let diaActual: number;

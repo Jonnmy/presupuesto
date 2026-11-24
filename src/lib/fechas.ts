@@ -13,6 +13,12 @@ export function hoy(ahora: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ahora);
 }
 
+/** Fecha local (Santo Domingo) de una marca de tiempo ISO. creadoEn está en UTC: después de las 8 p. m. ya es el día siguiente. */
+export function fechaLocal(iso: string): string {
+  const t = new Date(iso);
+  return Number.isNaN(t.getTime()) ? iso.slice(0, 10) : hoy(t);
+}
+
 export function partes(fecha: string): [number, number, number] {
   const [a, m, d] = fecha.split('-').map(Number);
   return [a, m, d];

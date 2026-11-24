@@ -224,4 +224,12 @@ describe('Rediseño: libre para gastar, ritmo, bloques y métodos', () => {
     expect(serie[2].monto).toBe(70);
     expect(comparativaQuincenas([Q2_NOV], d)[0]).toMatchObject({ ingreso: 22000, gastado: 220, ahorrado: 0 });
   });
+
+  it('creadoEn en UTC después de las 8 p. m. cuenta como el día local', () => {
+    const d = datos();
+    d.ajustes = { ...d.ajustes, creadoEn: '2026-11-24T00:30:00.000Z' }; // 23 nov, 8:30 p. m. en Santo Domingo
+    const l = libreParaGastar(Q2_NOV, d, '2026-11-23');
+    expect(l.diaActual).toBe(1);
+    expect(l.diasTotales).toBe(8);
+  });
 });
