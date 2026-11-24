@@ -25,33 +25,33 @@ const gasto = (fecha: string, monto: number, categoriaId: string, extra: Partial
   ({ id: `g${++n}`, fecha, monto, categoriaId, origen: 'manual', creadoEn: '2026-11-01T00:00:00Z', ...extra });
 
 describe('Pruebas de aceptación (sección 12)', () => {
-  it('1. Catálogo de Sirena: 3,974 por 15 días y 7,515 por mes', () => {
-    expect(costoCompraSirena(catalogoInicial(), 'quincena')).toBe(3974);
-    expect(costoCompraSirena(catalogoInicial(), 'mes')).toBe(7515);
+  it('1. Catálogo de Sirena: 4,639 por 15 días y 8,845 por mes (3,974 y 7,515 de la lista original + frutas, verduras, aguacate y sardinas)', () => {
+    expect(costoCompraSirena(catalogoInicial(), 'quincena')).toBe(4639);
+    expect(costoCompraSirena(catalogoInicial(), 'mes')).toBe(8845);
   });
 
-  it('2. Suma de presupuestos de gasto por quincena = 12,514', () => {
-    expect(totalPresupuestado(Q2_NOV, datos())).toBe(12514);
+  it('2. Suma de presupuestos de gasto por quincena = 13,179', () => {
+    expect(totalPresupuestado(Q2_NOV, datos())).toBe(13179);
   });
 
-  it('3. Meta de ahorro por quincena = 9,486', () => {
-    expect(metaAhorro(Q2_NOV, datos())).toBe(9486);
+  it('3. Meta de ahorro por quincena = 8,821', () => {
+    expect(metaAhorro(Q2_NOV, datos())).toBe(8821);
   });
 
-  it('4. Meta con la inscripción del gimnasio (2,000) = 7,486', () => {
+  it('4. Meta con la inscripción del gimnasio (2,000) = 6,821', () => {
     const d = datos({ planificados: [{ id: 'p', nombre: 'Inscripción del gimnasio', monto: 2000, fecha: '2026-11-22' }] });
-    expect(metaAhorro(Q2_NOV, d)).toBe(7486);
+    expect(metaAhorro(Q2_NOV, d)).toBe(6821);
     // No afecta otras quincenas
-    expect(metaAhorro(quincenaDe('2026-12-01'), { ...d, ajustes: { ...d.ajustes, transporteModo: 'fijo' } })).toBe(9486);
+    expect(metaAhorro(quincenaDe('2026-12-01'), { ...d, ajustes: { ...d.ajustes, transporteModo: 'fijo' } })).toBe(8821);
   });
 
-  it('5. Presupuesto mensual 25,028 y ahorro mensual 18,972 (transporte en modo fijo de 3,640)', () => {
+  it('5. Presupuesto mensual 26,358 y ahorro mensual 17,642 (transporte en modo fijo de 3,640)', () => {
     const d = datos();
     d.ajustes.transporteModo = 'fijo';
     const v = vistaMes({ anio: 2026, mes: 11 }, d);
     expect(v.ingreso).toBe(44000);
-    expect(v.presupuestado).toBe(25028);
-    expect(v.meta).toBe(18972);
+    expect(v.presupuestado).toBe(26358);
+    expect(v.meta).toBe(17642);
   });
 
   it('6. quincenaDe', () => {
@@ -80,7 +80,7 @@ describe('Pruebas de aceptación (sección 12)', () => {
     expect(estadoCategoria(3000, 3974)).toBe('ok');
     expect(estadoCategoria(3200, 3974)).toBe('alerta');
     expect(estadoCategoria(4000, 3974)).toBe('excedido');
-    const d = datos({ gastos: [gasto('2026-11-20', 3200, ID.dieta)] });
+    const d = datos({ gastos: [gasto('2026-11-20', 3800, ID.dieta)] });
     expect(vistaQuincena(Q2_NOV, d).filas.find((f) => f.categoria.id === ID.dieta)?.estado).toBe('alerta');
   });
 
@@ -114,14 +114,14 @@ describe('Otros cálculos', () => {
 
   it('proyección: antes de empezar = meta; al terminar = sobrante real', () => {
     const d = datos({ gastos: [gasto('2026-11-17', 6000, ID.personal)] });
-    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-16')).toBe(9486);
+    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-16')).toBe(8821);
     expect(proyeccionAhorro(Q2_NOV, d, '2026-12-05')).toBe(16000);
-    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-01')).toBe(9486);
+    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-01')).toBe(8821);
     // A mitad de quincena sin gastos, la proyección sube; pero si la app se instaló hoy, es la meta
-    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-22')).toBeGreaterThan(9486);
+    expect(proyeccionAhorro(Q2_NOV, datos(), '2026-11-22')).toBeGreaterThan(8821);
     const nueva = datos();
     nueva.ajustes.creadoEn = '2026-11-22T15:00:00Z';
-    expect(proyeccionAhorro(Q2_NOV, nueva, '2026-11-22')).toBe(9486);
+    expect(proyeccionAhorro(Q2_NOV, nueva, '2026-11-22')).toBe(8821);
   });
 
   it('ahorro acumulado y estimado de meta', () => {

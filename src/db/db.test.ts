@@ -4,7 +4,7 @@ import Dexie from 'dexie';
 import { BaseDatos, sembrar } from './db';
 import { agregarGasto, guardarProducto, marcarCompraHecha, registrarPasaje } from './acciones';
 import { borrarTodo, exportarDatos, gastosACsv, importarDatos } from './respaldo';
-import { ID } from '../lib/semilla';
+import { CANTIDADES_V5, catalogoInicial, categoriasIniciales, ID } from '../lib/semilla';
 
 let base: BaseDatos;
 let n = 0;
@@ -66,6 +66,21 @@ describe('Base de datos', () => {
     expect(await v3.productos.count()).toBe(25);
     expect((await v3.productos.get('prod-12'))?.precio).toBe(46); // v4: precio de sirena.do
     expect(await v3.productos.get('prod-15')).toBeUndefined();
+    expect((await v3.productos.get('prod-12'))?.cantidadQuincena).toBe(2); // v5: cantidad propuesta
+  });
+
+  it('migración a v5: pone las cantidades propuestas y recalcula Dieta si no se había editado', async () => {
+    const nombre = `migracion-${++n}`;
+    const v1 = new Dexie(nombre);
+    v1.version(1).stores({ ajustes: 'id', categorias: 'id, orden', gastos: 'id, fecha, categoriaId, recurrenteId', ingresos: 'id, fecha', recurrentes: 'id', diasLibres: 'fecha', productos: 'id, orden', compras: 'id, fecha', metas: 'id', depositos: 'id, fecha', planificados: 'id, fecha' });
+    const viejo = catalogoInicial().map((p) => (p.id in CANTIDADES_V5 ? { ...p, cantidadQuincena: 0, cantidadMes: 0 } : p));
+    await v1.table('productos').bulkAdd(viejo);
+    await v1.table('categorias').add({ ...categoriasIniciales()[0], presupuestoQuincenal: 3974, presupuestoMensual: 7515 });
+    v1.close();
+    const v5 = new BaseDatos(nombre);
+    const dieta = await v5.categorias.get(ID.dieta);
+    expect(dieta?.presupuestoQuincenal).toBe(4639);
+    expect(dieta?.presupuestoMensual).toBe(8845);
   });
 
   it('11. "Hoy trabajé" dos veces el mismo día crea un solo gasto de 280', async () => {
@@ -107,8 +122,8 @@ describe('Base de datos', () => {
   it('cambiar un precio recalcula el presupuesto de Dieta', async () => {
     const huevos = (await base.productos.get('prod-1'))!;
     const r = await guardarProducto({ ...huevos, precio: 215 }, base);
-    expect(r).toEqual({ antes: 3974, despues: 4014 });
-    expect((await base.categorias.get(ID.dieta))!.presupuestoMensual).toBe(7595);
+    expect(r).toEqual({ antes: 4639, despues: 4679 });
+    expect((await base.categorias.get(ID.dieta))!.presupuestoMensual).toBe(8925);
   });
 
   it('CSV de gastos', async () => {

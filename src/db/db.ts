@@ -1,7 +1,8 @@
 import Dexie, { type Table } from 'dexie';
+import { costoCompraSirena } from '../lib/calculos';
 import { hoy } from '../lib/fechas';
 import {
-  ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, planificadosIniciales, PRODUCTOS_RETIRADOS, recurrentesIniciales, RETIRADOS,
+  ajustesIniciales, catalogoInicial, categoriasIniciales, ID, metasIniciales, CANTIDADES_V5, planificadosIniciales, PRODUCTOS_RETIRADOS, recurrentesIniciales, RETIRADOS,
 } from '../lib/semilla';
 import type {
   Ajustes, Categoria, CompraSirena, DepositoAhorro, DiaLibre, Gasto, GastoPlanificado, Ingreso, MetaAhorro, ProductoSirena, Recurrente,
@@ -79,6 +80,26 @@ export class BaseDatos extends Dexie {
         const actual = (await productos.get(p.id)) as ProductoSirena | undefined;
         if (!actual) await productos.add(p);
         else if (actual.precio === 0 && p.precio > 0) await productos.update(p.id, { nombre: p.nombre, precio: p.precio, unidad: p.unidad, nota: p.nota });
+      }
+    });
+    // v5: cantidades propuestas de frutas, verduras, aguacate y sardinas, y Dieta recalculado.
+    // Solo se tocan productos que seguían en cantidad 0, y Dieta solo si seguía igual al catálogo anterior.
+    this.version(5).stores({}).upgrade(async (tx) => {
+      const productos = tx.table('productos');
+      const nuevos = catalogoInicial();
+      for (const [id, [q, m]] of Object.entries(CANTIDADES_V5)) {
+        const p = (await productos.get(id)) as ProductoSirena | undefined;
+        if (!p) continue;
+        if (p.cantidadQuincena === 0 && p.cantidadMes === 0) {
+          const semilla = nuevos.find((x) => x.id === id);
+          await productos.update(id, { cantidadQuincena: q, cantidadMes: m, ...(semilla ? { nota: semilla.nota } : {}) });
+        }
+      }
+      const todos = (await productos.toArray()) as ProductoSirena[];
+      const base = costoCompraSirena(todos.filter((p) => !(p.id in CANTIDADES_V5)), 'quincena');
+      const dieta = (await tx.table('categorias').get(ID.dieta)) as Categoria | undefined;
+      if (dieta && dieta.presupuestoQuincenal === base) {
+        await tx.table('categorias').update(ID.dieta, { presupuestoQuincenal: costoCompraSirena(todos, 'quincena'), presupuestoMensual: costoCompraSirena(todos, 'mes') });
       }
     });
   }
