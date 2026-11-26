@@ -5,3 +5,10 @@ dist
 public/*.png
 public/favicon.ico
 .claude
+
+# Claves de firma: nunca en el repositorio
+*.p12
+*.jks
+*.keystore
+.env
+.env.*

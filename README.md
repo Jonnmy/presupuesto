@@ -1,64 +1,117 @@
-# Quincena: control de gastos y ahorros
+# Finanzas personales
 
-App personal para saber, cada quincena, cuánto entra, cuánto se ha gastado por categoría y cuánto queda para ahorrar. Funciona en el teléfono, se instala como app y trabaja sin internet. Los datos se guardan solo en el dispositivo (IndexedDB); no hay cuentas ni servidor.
+App para controlar ingresos, gastos, presupuestos (semanales, quincenales, mensuales o personalizados), pagos recurrentes, deudas, tarjetas, cuentas y metas de ahorro. Está pensada para República Dominicana (RD$, español, fechas DD/MM/AAAA, zona America/Santo_Domingo), y todo eso se puede cambiar en Configuración.
 
-**Dirección:** https://jonnmy.github.io/presupuesto/
+Funciona **sin internet** y los datos se guardan **solo en el dispositivo**: no hay cuentas, servidor ni claves en el código.
 
-## Cómo se usa
+- **APK para Android:** https://github.com/Jonnmy/presupuesto/releases/latest/download/Finanzas.apk
+- **Versión web (también se instala como app):** https://jonnmy.github.io/presupuesto/
 
-- **Libre para gastar** (arriba en Resumen) = ingreso − gastos fijos comprometidos − meta de ahorro − gastos variables. Debajo verás cuánto puedes gastar **por día** en lo que queda de quincena.
-- **Barra de ritmo**: compara lo gastado en variables con los días transcurridos. La rayita blanca marca dónde "deberías" ir hoy. Verde = vas bien; ámbar = vas más rápido de lo ideal; rojo = te pasaste.
-- **Registrar rápido**: botón **+ Gasto** (o la tecla **N** en la computadora), escribe el monto, toca la categoría y pulsa **Enter**. En el mismo formulario puedes cambiar a **Ingreso** (horas extra, regalos) o marcar **Fijo recurrente** para que se repita cada quincena.
-- **Método de pago**: Efectivo/débito, Transferencia o Tarjeta de crédito. Lo gastado con tarjeta aparece en *Efectivo vs. tarjeta* como dinero a **reservar para el corte**.
-- **Reparto 50/30/20**: cada categoría pertenece a Necesidades, Estilo de vida o Ahorro. Los porcentajes se cambian en Ajustes y el bloque de cada categoría en Presupuesto.
-- **Suscripciones y servicios**: en **Ajustes → Fijos y suscripciones → + Suscripción o servicio** (internet, celular, streaming). El presupuesto de *Servicios y suscripciones* es la suma de ellos.
-- **Cierre de quincena**: si sobró dinero, la app pregunta si quieres **ahorrarlo**, **pasarlo a la quincena nueva** o empezar en cero.
-- **Demostración**: si aún no tienes movimientos, *Cargar quincena de demostración* llena las gráficas con datos de ejemplo. Se quitan con *Quitar demostración* sin tocar tus datos.
-- **Tema**: oscuro por defecto; botón Claro/Oscuro arriba a la derecha.
+## Instalar el APK en Android
 
-## Instalarla en el teléfono (Android)
+1. Desde el teléfono, abre el enlace del APK de arriba. Se descarga `Finanzas.apk`.
+2. Ábrelo. Si Android lo pide, permite **Instalar apps desconocidas** para Chrome o para Archivos.
+3. Toca **Instalar** y abre **Finanzas**.
 
-1. Abre la dirección de arriba en **Chrome**.
-2. Toca el menú **⋮** y elige **Instalar app** (o **Agregar a la pantalla principal**).
-3. Ábrela desde el ícono. Desde ese momento funciona sin internet.
+Las versiones nuevas se publican en la misma dirección y se instalan **encima** de la anterior sin perder los datos (todas van firmadas con la misma clave).
 
-Cada teléfono o navegador tiene sus propios datos. Si usas la app en el teléfono, registra todo ahí.
+> La app del APK y la versión web tienen datos separados. Para pasar datos de una a otra: **Configuración → Exportar respaldo** en una e **Importar respaldo** en la otra.
+
+## Qué hace
+
+| Módulo | Qué incluye |
+|---|---|
+| **Panel** | Balance disponible, ingresos y gastos del período, restante del presupuesto y % consumido, pendientes, libre hasta el próximo cobro (y por día), próximos compromisos, metas, alertas y comparación con el período anterior. Gráficos: ingresos vs. gastos, gastos por categoría, evolución del gasto y presupuesto usado vs. disponible. Selector de semana / quincena / mes / últimos 30 días / personalizado. |
+| **Movimientos** | Ingresos, gastos y transferencias: crear, editar, eliminar (con deshacer), buscar, filtrar por fecha, tipo, categoría, cuenta, estado y monto, ordenar y exportar a CSV. Aviso de posible duplicado. Registro rápido: monto → categoría → Guardar (tecla **N** en computadora). |
+| **Presupuestos** | Semanal, quincenal (1–15 y 16–fin, o según tus días de cobro), mensual o personalizado, con límite total y por categoría. Al editarlo se guarda una versión nueva: los períodos pasados no cambian. Historial por período. |
+| **Compromisos** | Ingresos y pagos recurrentes (semanal, quincenal, mensual, anual, cada N días, única vez), próxima fecha, aviso previo, marcar como pagado/recibido (crea el movimiento una sola vez), omitir una fecha, calendario de cobros. |
+| **Cuentas** | Efectivo, banco, ahorro, billetera y tarjeta de crédito con saldo, historial y transferencias. Las transferencias no cuentan como ingreso ni gasto. |
+| **Deudas y tarjetas** | Monto original, saldo, cuota, día de vencimiento, tasa e historial de abonos. Tarjetas con saldo, límite, día de corte y de pago. Pagar la tarjeta es una transferencia (el gasto ya se contó al comprar), así no se cuenta dos veces. |
+| **Metas de ahorro** | Objetivo, fecha límite, aportes y retiros desde una cuenta, progreso y cuánto apartar por quincena. |
+| **Calendario** | Vista mensual con cobros, pagos programados, vencimientos y movimientos; al tocar un día ves el detalle y puedes pagar o registrar. |
+| **Reportes** | Resumen semanal, quincenal o mensual, gastos por categoría, mayores gastos, evolución del ahorro, historial de presupuestos, deudas, comparación entre períodos, recomendaciones y exportación CSV. |
+| **Configuración** | Moneda, símbolo, decimales, formato de fecha, zona horaria, tema claro/oscuro, inicio de semana, días de quincena, umbrales de alertas, categorías (crear, editar, ocultar, eliminar moviendo sus movimientos) y respaldos (exportar/importar JSON, CSV, borrar todo con doble confirmación). |
+
+### Reglas de cálculo
+
+- **Balance disponible** = saldo de cuentas de efectivo, banco y billetera (las de ahorro y las tarjetas se muestran aparte).
+- Solo los movimientos **pagados** cambian saldos; los **pendientes** se muestran como compromisos.
+- **Transferencias** y **pagos de tarjeta**: mueven dinero entre cuentas, no son gasto.
+- **Compra con tarjeta**: es gasto el día de la compra y aumenta la deuda de la tarjeta.
+- **Abono a una deuda**: cuenta como gasto (categoría Deudas) y baja el saldo de la deuda.
+- **Aportes a metas**: sacan dinero de la cuenta pero no son gasto; los retiros lo devuelven.
+- Los montos se guardan en **centavos enteros** para evitar errores de redondeo.
+- Los recurrentes usan un índice único (compromiso + fecha) para que un pago nunca se registre dos veces.
 
 ## Respaldo de los datos
 
-Como los datos viven solo en el teléfono, si borras los datos de Chrome o cambias de teléfono, se pierden. Para evitarlo:
+Los datos viven solo en el teléfono (o navegador). Si desinstalas la app, borras sus datos o cambias de teléfono, se pierden. Por eso:
 
-1. Ve a **Ajustes → Respaldo de datos → Exportar respaldo (JSON)**.
-2. Guarda el archivo en Google Drive o envíatelo por correo.
-3. Para recuperarlo: **Ajustes → Importar respaldo** y elige el archivo. Reemplaza los datos actuales.
+1. Entra a **Configuración → Copias de seguridad → Exportar respaldo (JSON)** de vez en cuando (la app te recuerda si pasan más de 14 días).
+2. En el APK se abre el menú de compartir: guárdalo en **Drive**, envíalo por correo o WhatsApp.
+3. Para recuperar: **Importar respaldo** y elige el archivo.
 
-La app te recuerda hacer un respaldo cada 15 días. También puedes exportar los gastos a CSV para abrirlos en Excel o Google Sheets.
+La primera vez que se abre esta versión en un navegador donde se usó la versión anterior ("Quincena"), sus gastos, ingresos y ahorros se importan automáticamente.
 
-## Correrla en la computadora
+## Desarrollo
 
-Necesitas [Node.js](https://nodejs.org) 20 o más reciente.
+Requisitos: Node.js 20 o superior.
 
 ```powershell
 npm install
-npm run iconos   # genera los íconos PNG a partir de public/icono.svg
-npm run dev      # abre http://localhost:5173/
-npm test         # pruebas de los cálculos
-npm run build    # compila en dist/
+npm run iconos       # íconos de la versión web
+npm run dev          # servidor de desarrollo
+npm test             # pruebas (Vitest)
+npm run build        # compilación de producción en dist/
 ```
 
-## Publicación
+### Compilar el APK
 
-Cada cambio en la rama `main` ejecuta las pruebas, compila y publica en GitHub Pages (`.github/workflows/publicar.yml`).
+El APK se compila solo en **GitHub Actions** con cada cambio en `main` (`.github/workflows/apk.yml`) y se publica en **Releases**. Para compilarlo en una computadora propia hace falta JDK 21 y el SDK de Android:
 
-## Decisiones sobre la especificación
+```powershell
+npm run android                  # compila la web y la copia al proyecto Android
+cd android; .\gradlew assembleDebug
+```
 
-- **Estado al 100 %:** una categoría queda *excedida* solo cuando el gasto pasa el presupuesto. Si es exactamente igual queda en ámbar. Así, pagar la mensualidad completa del gimnasio (2,800 de 2,800) no sale en rojo (prueba 10).
-- **Proyección de ahorro:** gasto proyectado = lo gastado + la parte del presupuesto que corresponde a los días que faltan. Antes de empezar la quincena coincide con la meta y al terminar coincide con lo que sobró. Si la app se empezó a usar a mitad de quincena, los días anteriores no cuentan.
-- **Categorías:** se quitaron Suplementos, Ropa y calzado y Otros (y los recurrentes de whey y creatina). Quedan Dieta, Gimnasio, Transporte y Gastos personales. Si ya había gastos en las categorías quitadas, pasan a Gastos personales.
-- **Montos actualizados:** gimnasio RD$2,800 al mes (RD$1,400 de provisión por quincena) y pasaje RD$280 por día laborable, de lunes a sábado (13 días × 280 = RD$3,640 en una quincena típica).
-- **Presupuesto mensual (prueba 5):** 26,358 sale con transporte en modo fijo (2 × 3,640). En modo calendario el mes usa los días laborables reales de cada quincena.
-- **Inscripción del gimnasio:** está como *gasto único planificado* (Presupuesto → Gastos únicos planificados) en la quincena del primer uso y baja esa meta a RD$6,821. Cuando la pagues, regístrala también como gasto.
-- **Dieta:** su presupuesto se recalcula cuando cambias precios o cantidades en el catálogo de Sirena. En **Compras** puedes ver la lista por quincena o por mes. A la lista original (RD$3,974 / RD$7,515) se sumaron, con precios de sirena.do del 22 nov 2026, cada 15 días: 3 lb de lechosa, 3 lb de naranja, 1 lb de guayaba, 4 mangos, 2 lb de tomate, 1 lb de zanahoria, 1 lb de pepino, 3 aguacates y 2 latas de sardinas (+RD$665). Dieta queda en **RD$4,639** por quincena y **RD$8,845** al mes. Piña, manzana, chinola, melón, sandía y el multivitamínico quedan como opcionales (cantidad 0). En **Compras → Notas de la dieta** están las recomendaciones de la batida, qué añadir y cómo elegir el multivitamínico.
-- **Cifras actuales:** presupuesto por quincena **RD$13,179**, meta de ahorro **RD$8,821** (RD$6,821 con la inscripción), presupuesto mensual **RD$26,358** y ahorro mensual **RD$17,642**.
-- **Recurrentes automáticos:** vienen desactivados. Al activarlos se registran solos desde ese día, nunca en fechas anteriores ni dos veces en la misma fecha.
-- **Rediseño (nov 2026):** se mantuvo React + TypeScript + IndexedDB (no localStorage) para no perder los datos existentes; la migración v6 solo añade los bloques 50/30/20, marca Gimnasio y Servicios como *fijos* y crea la categoría *Servicios y suscripciones* (presupuesto 0 hasta que agregues suscripciones). Los gastos fijos cuentan completos en "Libre para gastar" aunque todavía no se hayan pagado. Las gráficas son SVG propio, sin librerías, para que la app siga funcionando sin internet.
+La firma de la versión publicada se lee de variables de entorno (`ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`), que en GitHub vienen de los **secretos** del repositorio. La clave **no** está en el repositorio (`*.p12`, `*.jks` y `*.keystore` están ignorados). Guarda una copia de la carpeta de la clave en un lugar seguro: sin ella no se pueden publicar actualizaciones que se instalen encima.
+
+## Arquitectura
+
+- **Vite + React 19 + TypeScript**: interfaz.
+- **Dexie (IndexedDB)**: base de datos local `finanzas`.
+- **Capacitor 8**: empaqueta la misma app web como APK de Android (botón atrás, guardar/compartir archivos).
+- **vite-plugin-pwa**: versión web instalable y sin internet.
+
+```
+src/
+  nucleo/        Lógica financiera pura y probada (sin interfaz ni base de datos)
+    tipos.ts       Modelo de datos
+    dinero.ts      Centavos, formato de moneda, porcentajes
+    fechas.ts      Fechas locales, formatos, zona horaria
+    periodos.ts    Semana, quincena, mes, últimos 30 días, personalizado
+    recurrencia.ts Próximas fechas de pagos e ingresos recurrentes
+    finanzas.ts    Saldos, totales, presupuestos, deudas, metas, alertas, recomendaciones
+    validar.ts     Validaciones y detección de duplicados
+  db/            Base de datos, datos iniciales, acciones (guardar/eliminar/pagar) y respaldos
+  ui/            Componentes comunes, formularios, gráficos SVG, selector de período
+  pantallas/     Panel, Movimientos, Presupuestos, Compromisos, Cuentas, Deudas, Metas,
+                 Calendario, Reportes, Configuración
+android/         Proyecto nativo generado por Capacitor
+scripts/         Generación de íconos del APK
+```
+
+Toda la lógica de cálculo está en `src/nucleo` y las pantallas solo la usan, así los números son los mismos en el panel, los reportes y las alertas.
+
+## Estado
+
+**Terminado:** todos los módulos de la tabla, tema claro/oscuro, diseño adaptable (barra lateral en computadora, navegación inferior en el teléfono), validaciones, confirmación antes de eliminar, deshacer, protección contra duplicados, respaldos e importación, exportación CSV, APK firmado y publicación automática, 33 pruebas automáticas del núcleo y de la base de datos.
+
+**Limitaciones conocidas:**
+
+- Las alertas y recordatorios se ven **dentro de la app** (panel y compromisos); todavía no hay notificaciones push del sistema.
+- No hay sincronización entre dispositivos: se pasa la información con respaldos.
+- Solo está en español.
+- La tasa de interés de las deudas se registra como referencia; la app no calcula intereses automáticamente.
+- Las pantallas de la versión anterior (lista de la Sirena y dieta) se retiraron; sus gastos, ingresos y ahorros se importan como se indica arriba.
+- El APK se instala fuera de Google Play, por eso Android pide permitir la instalación.

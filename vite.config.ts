@@ -14,9 +14,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icono.svg'],
       manifest: {
-        name: 'Quincena: gastos y ahorro',
-        short_name: 'Quincena',
-        description: 'Control de gastos y ahorros por quincena',
+        name: 'Finanzas personales',
+        short_name: 'Finanzas',
+        description: 'Presupuestos, gastos, ingresos, deudas y metas de ahorro',
         lang: 'es-DO',
         theme_color: '#0b0f17',
         background_color: '#0b0f17',
