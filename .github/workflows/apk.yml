@@ -60,7 +60,8 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
           cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/Finanzas.apk"
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$RUNNER_TEMP/Finanzas.apk" | head -3 || true
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$RUNNER_TEMP/Finanzas.apk" | grep -E "Verified using|Signer #1 certificate DN"
 
       - name: Borrar la clave temporal
         if: always()
