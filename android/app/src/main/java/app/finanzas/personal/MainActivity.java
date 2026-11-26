@@ -1,4 +1,4 @@
-package do.finanzas.personal;
+package app.finanzas.personal;
 
 import com.getcapacitor.BridgeActivity;
 

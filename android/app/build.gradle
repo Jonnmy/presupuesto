@@ -4,10 +4,10 @@ apply plugin: 'com.android.application'
 def claveFirma = System.getenv("ANDROID_KEYSTORE_PATH")
 
 android {
-    namespace = "do.finanzas.personal"
+    namespace = "app.finanzas.personal"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "do.finanzas.personal"
+        applicationId "app.finanzas.personal"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode((System.getenv("VERSION_CODE") ?: "1").toInteger())
